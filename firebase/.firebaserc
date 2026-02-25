@@ -1,6 +1,6 @@
 {
   "projects": {
-    "dev": "project-dev",
+    "dev": "al-demo-9f7a9",
     "prod": "project-prod"
   }
 }

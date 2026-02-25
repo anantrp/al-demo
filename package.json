@@ -1,5 +1,5 @@
 {
-  "name": "project",
+  "name": "al-demo",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -10,7 +10,7 @@
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/web",
-    "prepare": "husky"
+    "prepare": "node -e \"if (process.env.CI !== 'true') { process.exit(1) }\" || husky install"
   },
   "devDependencies": {
     "husky": "^9.1.7",

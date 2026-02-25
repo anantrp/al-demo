@@ -10,7 +10,7 @@
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/web",
-    "prepare": "node -e \"if (process.env.CI !== 'true') { process.exit(1) }\" || husky install"
+    "prepare": "husky install || true"
   },
   "devDependencies": {
     "husky": "^9.1.7",

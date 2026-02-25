@@ -44,7 +44,7 @@ export default function Home() {
       const idToken = await currentUser.getIdToken();
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      const response = await fetch(`${apiUrl}/user/me`, {
+      const response = await fetch(`${apiUrl}/me`, {
         headers: {
           Authorization: `Bearer ${idToken}`,
         },

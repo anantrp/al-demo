@@ -1,0 +1,32 @@
+{
+  "name": "project",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "start": "npm run start --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/web",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3"
+  },
+  "lint-staged": {
+    "api/**/*.py": [
+      "bash -c 'cd api && uv run ruff check --fix \"$@\"' --",
+      "bash -c 'cd api && uv run ruff format \"$@\"' --"
+    ],
+    "apps/web/**/*.{js,jsx,ts,tsx}": [
+      "bash -c 'cd apps/web && npm run lint:fix -- \"$@\"' --",
+      "bash -c 'cd apps/web && npx prettier --write \"$@\"' --"
+    ],
+    "apps/web/**/*.{json,css,md}": [
+      "bash -c 'cd apps/web && npx prettier --write \"$@\"' --"
+    ]
+  }
+}

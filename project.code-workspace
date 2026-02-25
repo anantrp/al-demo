@@ -1,0 +1,88 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "project (root)",
+    },
+    {
+      "path": "api",
+      "name": "API (Python)",
+    },
+    {
+      "path": "apps/web",
+      "name": "Web (Next.js)",
+    },
+  ],
+  "settings": {
+    // Python settings
+    "[python]": {
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+      },
+    },
+    "ruff.enable": true,
+    "ruff.nativeServer": true,
+    "ruff.configuration": "${workspaceFolder:API (Python)}/pyproject.toml",
+    "python.defaultInterpreterPath": "${workspaceFolder:API (Python)}/.venv/bin/python",
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": false,
+    "python.linting.pylintEnabled": false,
+    "python.linting.ruffEnabled": true,
+    "flake8.enabled": false,
+
+    // TypeScript/JavaScript settings
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+      },
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+      },
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+      },
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+      },
+    },
+    "eslint.enable": true,
+    "eslint.workingDirectories": [
+      {
+        "directory": "apps/web",
+        "changeProcessCWD": true,
+      },
+    ],
+    "typescript.tsdk": "apps/web/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+
+    // File exclusions
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "api/.venv": true,
+      "**/.next": false,
+      "**/node_modules": false,
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "api/.venv": true,
+    },
+  },
+}

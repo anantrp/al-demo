@@ -1,0 +1,31 @@
+---
+description: Guide for finding and using system documentation
+alwaysApply: true
+---
+
+# System Documentation Reference
+
+All system documentation lives in `docs/system/`. When working on tasks, reference the relevant documentation files to understand the project structure, guidelines, and principles.
+
+## Available Documentation
+
+- **ARCHITECTURE.md**: System architecture, technology stack, component structure, and design patterns
+- **AUTH.md**: Authentication and authorization flows, user roles, and security implementation
+- **FIRESTORE_RULES.md**: Firestore security rules and data access patterns
+- **FIRESTORE_STRUCTURE.md**: Database schema, collections, and data model structure
+- **STORAGE_STRUCTURE.md**: File storage organization and asset management
+- **USER_FLOWS.md**: User workflows, interaction patterns, and feature flows
+
+## When to Reference Documentation
+
+- **Before architectural changes**: Read `ARCHITECTURE.md` to understand system design
+- **When working with auth**: Check `AUTH.md` for authentication patterns
+- **Before database changes**: Review `FIRESTORE_STRUCTURE.md` and `FIRESTORE_RULES.md`
+- **When implementing features**: Check `USER_FLOWS.md` for intended user experience
+
+## Usage Pattern
+
+1. Identify which documentation file(s) are relevant to your task
+2. Use the Read tool to access the specific file(s)
+3. Apply the principles and patterns from the documentation
+4. Do not modify files in `docs/system/` unless explicitly requested

@@ -1,0 +1,11 @@
+---
+description: "This rule provides standards for how to generate or update documentation for the project."
+tags: [docs]
+alwaysApply: true
+---
+
+- Never update system documentation located in the `docs/system` directory.
+- Be vary of creating new documentation or updating existing documentation at all. Only create documentation when it is explicitly requested.
+- When creating new documentation, always create it in the `docs/` directory.
+- Documentation when explicitly requested should be concise and to the point, not overly verbose.
+- Do not include any examples or code snippets in the documentation unless explicitly requested or absolutely necessary.

@@ -1,0 +1,8 @@
+---
+description: "This rule provides standards for how to comment code for the project."
+tags: [code-comments]
+alwaysApply: true
+---
+
+- Do not comment code unless absolutely necessary.
+- If you update the code that is already commented, update the comments to reflect the changes.

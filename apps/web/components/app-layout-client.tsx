@@ -2,6 +2,7 @@
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/toaster";
 
 type UserData = {
   uid: string;
@@ -15,6 +16,7 @@ export function AppLayoutClient({ user, children }: { user: UserData; children: 
     <SidebarProvider>
       <AppSidebar user={user} />
       <SidebarInset>{children}</SidebarInset>
+      <Toaster />
     </SidebarProvider>
   );
 }

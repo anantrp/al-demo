@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listenToCase, CaseData } from "@/lib/firestore/cases";
+import { EditableCaseName } from "@/components/cases/editable-case-name";
 
 export default function CasePage() {
   const params = useParams();
@@ -94,7 +95,7 @@ export default function CasePage() {
         ) : (
           <div className="flex flex-col gap-4">
             <div>
-              <h1 className="text-2xl font-bold">{caseData?.name}</h1>
+              <EditableCaseName caseId={caseId} initialName={caseData?.name || ""} />
               <p className="text-sm text-muted-foreground">Status: {caseData?.status}</p>
             </div>
             <div className="bg-muted/50 min-h-[400px] rounded-xl p-6">

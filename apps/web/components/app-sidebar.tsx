@@ -4,6 +4,7 @@ import * as React from "react";
 import { GalleryVerticalEnd } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
+import { NavCases } from "@/components/cases/nav-cases";
 import {
   Sidebar,
   SidebarContent,
@@ -60,7 +61,9 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent></SidebarContent>
+      <SidebarContent>
+        <NavCases userId={user.uid} />
+      </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />
       </SidebarFooter>

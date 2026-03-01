@@ -77,7 +77,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
       const result = await createSession(idToken);
 
       if (result.success) {
-        router.push("/dashboard");
+        router.push("/");
       } else {
         setError(result.error || "Failed to create session");
       }

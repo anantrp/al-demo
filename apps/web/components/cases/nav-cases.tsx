@@ -116,7 +116,7 @@ export function NavCases({ userId }: NavCasesProps) {
             {cases.map((caseItem) => (
               <SidebarMenuItem key={caseItem.caseId}>
                 <SidebarMenuButton asChild>
-                  <a href={`/dashboard/cases/${caseItem.caseId}`}>
+                  <a href={`/cases/${caseItem.caseId}`}>
                     <FolderOpen className="size-4" />
                     <span className="truncate">{caseItem.name}</span>
                   </a>

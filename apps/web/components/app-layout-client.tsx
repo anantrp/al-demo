@@ -1,15 +1,16 @@
-import { redirect } from "next/navigation";
-import { verifySession } from "@/actions/auth";
+"use client";
+
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const user = await verifySession();
+type UserData = {
+  uid: string;
+  email: string | null;
+  name: string | null;
+  picture: string | null;
+};
 
-  if (!user) {
-    redirect("/login");
-  }
-
+export function AppLayoutClient({ user, children }: { user: UserData; children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar user={user} />

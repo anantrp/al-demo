@@ -55,7 +55,7 @@ function FinishSignInContent() {
 
         if (result.success) {
           window.history.replaceState({}, "", "/auth/finish-signin");
-          router.push("/dashboard");
+          router.push("/");
         } else {
           setError(result.error || "Failed to create session");
         }
@@ -84,7 +84,7 @@ function FinishSignInContent() {
 
       if (result.success) {
         window.history.replaceState({}, "", "/auth/finish-signin");
-        router.push("/dashboard");
+        router.push("/");
       } else {
         setError(result.error || "Failed to create session");
       }

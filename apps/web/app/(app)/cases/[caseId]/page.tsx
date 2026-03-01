@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -58,12 +59,8 @@ export default function CasePage() {
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard">Cases</BreadcrumbLink>
+                <BreadcrumbLink href="/">Cases</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -90,12 +87,9 @@ export default function CasePage() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
             <div className="text-lg font-semibold text-red-600 dark:text-red-400">{error}</div>
-            <a
-              href="/dashboard"
-              className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-            >
-              Return to Dashboard
-            </a>
+            <Link href="/" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+              Return to Cases
+            </Link>
           </div>
         ) : (
           <div className="flex flex-col gap-4">

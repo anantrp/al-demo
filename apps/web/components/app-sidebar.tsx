@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { GalleryVerticalEnd } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
@@ -48,7 +49,7 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard" className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2">
                 <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
                   <GalleryVerticalEnd className="size-4 shrink-0" />
                 </div>
@@ -56,7 +57,7 @@ export function AppSidebar({
                   <span className="truncate font-semibold">AL Demo</span>
                   <span className="truncate text-xs">Document Processing</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

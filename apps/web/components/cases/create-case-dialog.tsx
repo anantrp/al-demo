@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { createCase } from "@/actions/cases";
 
 export function CreateCaseDialog() {
@@ -41,7 +42,7 @@ export function CreateCaseDialog() {
       if (result.success && result.caseId) {
         setOpen(false);
         setName("");
-        router.push(`/dashboard/cases/${result.caseId}`);
+        router.push(`/cases/${result.caseId}`);
       } else {
         setError(result.error || "Failed to create case");
       }
@@ -66,10 +67,10 @@ export function CreateCaseDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start gap-2" size="sm">
+        <SidebarMenuButton>
           <Plus className="size-4" />
           <span>New Case</span>
-        </Button>
+        </SidebarMenuButton>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>

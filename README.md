@@ -1,166 +1,210 @@
-# Project Architecture
+# Developer Setup
 
-## System Overview
+Complete setup guide for the project monorepo. Format-on-save and linting are pre-configured.
 
-```mermaid
-graph TB
-    subgraph client[Next.js - Vercel]
-        UI[React Components]
-        ClientSDK[Firebase Client SDK]
-        ServerActions[Server Actions]
-        AdminSDK[Firebase Admin SDK]
-    end
+## Quick Start
 
-    subgraph firebase[Firebase]
-        Auth[Authentication]
-        Firestore[(Firestore)]
-        Storage[(Storage)]
-        Rules[Security Rules]
-    end
+1. **Open workspace file** (required for proper IDE integration):
 
-    subgraph functions[Cloud Functions]
-        OnCaseCreated[onCaseCreated Trigger]
-    end
+   ```bash
+   cursor project.code-workspace
+   ```
 
-    subgraph workers[FastAPI - Cloud Run]
-        Extract[Extract Worker<br/>/worker/extract]
-        Generate[Generate Worker<br/>/worker/generate]
-        WorkerAdmin[Admin SDK]
-    end
+2. **Install extensions** (if not already installed):
+   - **Ruff** (charliermarsh.ruff)
+   - **ESLint** (dbaeumer.vscode-eslint)
+   - **Prettier** (esbenp.prettier-vscode)
 
-    subgraph infrastructure[Cloud Infrastructure]
-        CloudTasks[Cloud Tasks]
-    end
+3. **Reload window**: `Ctrl+Shift+P` → "Developer: Reload Window"
 
-    UI -->|Sign in| Auth
-    UI -->|Real-time listeners| ClientSDK
-    ClientSDK -->|Read cases/status| Firestore
+4. **Install dependencies**:
 
-    UI -->|Create case, upload| ServerActions
-    ServerActions -->|Rate limit, validate| AdminSDK
-    AdminSDK -->|Write case| Firestore
-    AdminSDK -->|Upload file| Storage
+   ```bash
+   # Root (required for Husky pre-commit hooks)
+   npm install
 
-    Firestore -->|onCreate event| OnCaseCreated
-    OnCaseCreated -->|Enqueue task| CloudTasks
-    CloudTasks -->|API Key| Extract
+   # Python API
+   cd api && uv sync
 
-    Extract -->|Update status| WorkerAdmin
-    Extract -->|Enqueue generation| CloudTasks
-    CloudTasks -->|API Key| Generate
+   # Next.js App
+   cd apps/web && npm install
+   ```
 
-    Generate -->|Upload PDF| WorkerAdmin
-    WorkerAdmin -->|Bypass rules| Firestore
-    WorkerAdmin -->|Write outputs| Storage
+That's it! Format-on-save is now active for all files.
 
-    Firestore -.->|Real-time event| ClientSDK
+## Project Structure
 
-    style ServerActions fill:#bbf
-    style OnCaseCreated fill:#bfb
-    style Extract fill:#fbb
-    style Generate fill:#fbb
+```
+project/
+├── api/                      # Python FastAPI (Ruff)
+├── apps/web/                 # Next.js (ESLint + Prettier)
+├── docs/                     # Documentation
+└── project.code-workspace    # Pre-configured IDE settings
 ```
 
-## Component Responsibilities
+## What's Already Configured
 
-### Next.js (Vercel)
+**Python** (`api/pyproject.toml`):
 
-**Client Components:**
+- Ruff formatter (100 char line length)
+- Python 3.13 + PEP 8 rules
+- Format & auto-fix on save
+- Pre-commit hooks via Husky
 
-- Firebase Auth (sign-in, sign-out, session management)
-- Real-time listeners for case status and generation progress
-- UI rendering (shadcn components)
+**TypeScript/JavaScript** (`apps/web/`):
 
-**Server Actions (Firebase Admin SDK):**
+- Prettier formatter (100 char line length)
+- ESLint with Next.js rules
+- Format & auto-fix on save
+- Pre-commit hooks via Husky
 
-- Case creation with rate limiting
-- File upload validation (size, type checks)
-- Email notifications (Resend)
-- Audit logging
-- Multi-document transactions
+## Environment Configuration
 
-### Firebase
+### Environment Variables
 
-**Authentication:** Google OAuth, email/password  
-**Firestore:** Case metadata, extraction results, generation status  
-**Storage:** Source documents, generated PDFs, templates  
-**Security Rules:** Enforce user can only access their own data
+Each project keeps its own `.env` file in its directory:
 
-### Cloud Functions
+```
+api/.env                  # Python API environment variables
+apps/web/.env.local       # Next.js app environment variables (gitignored)
+```
 
-**Firestore Triggers:**
+**Note**: These files are gitignored. Never commit secrets to the repository.
 
-- `onCaseCreated`: Fires when new case document created
-- Enqueues extraction task to Cloud Tasks
-- Deployed separately: `firebase deploy --only functions`
+### Service Account JSON
 
-### FastAPI Workers (Cloud Run)
+For local development, place service account JSON files in their respective project directories:
 
-**Extract Worker:**
+```
+api/service-account.json        # For Python API
+apps/web/service-account.json   # For Next.js app (if needed)
+```
 
-- Download source document from Storage
-- GPT-4 Vision extraction → structured fields
-- Validation (date consistency, format checks)
-- Update Firestore with results
-- Enqueue generation if auto-approved
+**Note**: Service account JSON files should be gitignored and never committed.
 
-**Generate Worker:**
+## Package Management
 
-- Fetch template from Storage
-- Render with extracted data
-- Convert .docx → PDF
-- Upload to Storage
-- Update generation status
+### Installing Packages
 
-**Admin Endpoints:**
+**Root level** (Husky, shared tooling):
 
-- `/admin/retry-extraction` - Manual re-extraction (prompt changes, recovery)
-- `/admin/retry-generation` - Regenerate specific templates
-- Authenticated with Firebase ID token + admin role
-- Internally enqueues Cloud Tasks (API key stays isolated)
+```bash
+# From repository root
+npm install <package-name>
+```
 
-### Cloud Tasks
+**Next.js app** (`apps/web`):
 
-- Queue extraction jobs (triggered by Firestore onCreate)
-- Queue generation jobs (enqueued by extract worker)
-- API key authentication to FastAPI workers
+```bash
+# Option 1: From root using workspace
+npm install <package-name> -w apps/web
 
-## Key Design Decisions
+# Option 2: From apps/web directory
+cd apps/web && npm install <package-name>
+```
 
-**Firebase Client SDK:** Real-time updates without polling, offline support  
-**Firebase Admin SDK in Server Actions:** Server-side validation, rate limiting, email triggers  
-**Security Rules:** Authorization layer prevents unauthorized data access  
-**FastAPI for compute only:** Separates business logic from heavy processing  
-**API Keys:** Secure worker endpoints, manual triggering, infrastructure-agnostic  
-**Firestore triggers:** Automatic workflow execution on case creation
+**Python API** (`api`):
 
-## Data Flow: Case Creation
+```bash
+cd api && uv add <package-name>
+```
 
-1. User uploads document in Next.js
-2. Server Action validates file → writes case to Firestore via Admin SDK
-3. Firestore trigger fires on case creation
-4. Cloud Tasks enqueues extraction job
-5. Extract worker processes document, updates Firestore
-6. Client `onSnapshot` listener updates UI in real-time
-7. If approved, extract worker enqueues generation jobs
-8. Generate workers produce PDFs, upload to Storage
-9. Client listeners show download links
+## Development Commands
 
-## Security Model
+### Python API
 
-**Firestore Rules:** Users read/write only their cases (`userId == request.auth.uid`)  
-**Storage Rules:** Users access only their paths (`/source-documents/{userId}/...`)  
-**Worker endpoints:** OIDC tokens from Cloud Tasks only (not publicly accessible)  
-**Admin SDK operations:** Bypass rules for status updates (workers trusted, users not)
+```bash
+cd api
 
-## Technology Stack
+# Dev server
+uv run uvicorn app.main:app --reload
 
-- **Frontend:** Next.js 16, React, shadcn/ui, Tailwind CSS
-- **Backend:** FastAPI, Python 3.11
-- **Database:** Firestore
-- **Storage:** Firebase Storage
-- **Auth:** Firebase Authentication
-- **Email:** Resend
-- **Compute:** Cloud Run, Cloud Tasks
-- **AI:** OpenAI GPT-4 Vision
-- **Deployment:** Vercel (frontend), GCP (backend)
+# Lint & format (use scripts)
+./scripts/lint.sh              # Check only
+./scripts/fix.sh               # Auto-fix & format
+
+# Or use Ruff directly
+uv run ruff check              # Check
+uv run ruff check --fix        # Fix
+uv run ruff format             # Format
+```
+
+### Next.js App
+
+```bash
+cd apps/web
+
+# Dev server
+npm run dev
+
+# Lint & format
+npm run lint                   # Check
+npm run lint:fix               # Auto-fix
+npm run format                 # Format with Prettier
+npm run format:check           # Check formatting
+npm run build                  # Production build
+```
+
+## Pre-commit Hooks
+
+Pre-commit hooks are **automatically configured** using Husky + lint-staged. They were set up during `npm install`.
+
+**What happens on commit:**
+
+1. **Python files** (`api/**/*.py`):
+   - Ruff checks and auto-fixes issues
+   - Ruff formats code
+
+2. **TypeScript/JavaScript files** (`apps/web/**/*.{ts,tsx,js,jsx}`):
+   - ESLint checks and auto-fixes issues
+   - Prettier formats code
+
+3. **Other files** (`apps/web/**/*.{json,css,md}`):
+   - Prettier formats code
+
+**Configuration**: See `lint-staged` section in root `package.json`
+
+**To skip hooks** (not recommended):
+
+```bash
+git commit --no-verify
+```
+
+## Troubleshooting
+
+**Ruff crashes**: Disable extension, use CLI (`./scripts/fix.sh`)
+
+**Linting not working**: Open via workspace file, then reload window
+
+**TypeScript version conflicts**: Accept "Use Workspace Version" prompt
+
+**Python interpreter wrong**: Set to `api/.venv/bin/python`
+
+## CI/CD
+
+### Python
+
+```yaml
+- run: |
+    cd api
+    uv run ruff check --no-fix
+    uv run ruff format --check
+```
+
+### Next.js
+
+```yaml
+- run: |
+    cd apps/web
+    npm ci
+    npm run lint
+    npm run format:check
+```
+
+## Key Files
+
+- `project.code-workspace` - IDE settings (format-on-save, linters)
+- `api/pyproject.toml` - Ruff configuration
+- `apps/web/eslint.config.mjs` - ESLint rules
+- `apps/web/.prettierrc.json` - Prettier config
+- `api/scripts/*.sh` - Convenience lint/fix scripts

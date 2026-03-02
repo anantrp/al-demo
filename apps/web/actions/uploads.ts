@@ -190,7 +190,6 @@ export async function finalizeUpload(
     });
 
     batch.update(caseRef, {
-      status: "open",
       updatedAt: FieldValue.serverTimestamp(),
     });
 

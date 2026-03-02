@@ -19,8 +19,6 @@ export interface Case {
   userId: string;
   caseTypeId: string;
   name: string;
-  status: "draft" | "open" | "extracting" | "extracted" | "failed";
-  extractionStatus: string | null;
   deletedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -30,7 +28,6 @@ export interface CaseData {
   caseId: string;
   caseTypeId: string;
   name: string;
-  status: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,7 +42,6 @@ function mapCaseDocument(doc: QueryDocumentSnapshot): CaseData {
     caseId: data.caseId,
     caseTypeId: data.caseTypeId,
     name: data.name,
-    status: data.status,
     createdAt: convertTimestampToDate(data.createdAt),
     updatedAt: convertTimestampToDate(data.updatedAt),
   };
@@ -156,7 +152,6 @@ export function listenToCase(
         caseId: data.caseId,
         caseTypeId: data.caseTypeId,
         name: data.name,
-        status: data.status,
         createdAt: convertTimestampToDate(data.createdAt),
         updatedAt: convertTimestampToDate(data.updatedAt),
       });

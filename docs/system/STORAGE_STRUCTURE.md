@@ -54,12 +54,13 @@ Storage paths are stored in Firestore documents. No code constructs paths manual
 
 **All operations use Admin SDK or signed URLs - no public access:**
 
-| Operation              | Method     | Who                                                   |
-| ---------------------- | ---------- | ----------------------------------------------------- |
-| Upload template        | Admin SDK  | Manual seeding / future admin panel                   |
-| Upload source document | Admin SDK  | Next.js Server Action                                 |
-| Upload generated PDF   | Admin SDK  | FastAPI worker                                        |
-| Download any file      | Signed URL | Next.js Server Action generates URL, client downloads |
+| Operation              | Method           | Who                                                   |
+| ---------------------- | ---------------- | ----------------------------------------------------- |
+| Upload template        | Admin SDK        | Manual seeding / future admin panel                   |
+| Upload source document | Admin SDK        | Next.js Server Action                                 |
+| Upload generated PDF   | Admin SDK        | FastAPI worker                                        |
+| Download attachment    | Client SDK       | Authenticated user who owns the case                  |
+| Download other files   | Signed URL       | Next.js Server Action generates URL, client downloads |
 
 ## Storage Security Rules
 
@@ -67,6 +68,10 @@ Storage paths are stored in Firestore documents. No code constructs paths manual
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    match /cases/{caseId}/attachments/{allPaths=**} {
+      allow read: if request.auth != null &&
+        firestore.get(/databases/(default)/documents/cases/$(caseId)).data.userId == request.auth.uid;
+    }
     match /{allPaths=**} {
       allow read, write: if false;
     }
@@ -74,12 +79,11 @@ service firebase.storage {
 }
 ```
 
-**Why deny all access:**
+**Access rules:**
 
-- Uploads happen via Admin SDK (bypasses rules)
-- Downloads use short-lived signed URLs (bypasses rules)
-- No public or authenticated access needed
-- Maximum security with minimal complexity
+- Attachments (`cases/{caseId}/attachments/`): readable by the authenticated user who owns the case, verified via Firestore lookup
+- All other paths (templates, outputs): deny all — uploads use Admin SDK, downloads use signed URLs
+- No writes via client SDK anywhere
 
 ## Download Flow
 

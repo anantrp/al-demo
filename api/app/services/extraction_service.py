@@ -99,16 +99,16 @@ def _load_extraction_context(extraction_doc_id: str) -> ExtractionContext:
     )
 
 
-def _update_status_to_extracting(extraction_context: ExtractionContext) -> None:
+def _update_status_to_processing(extraction_context: ExtractionContext) -> None:
     extraction_context.extraction_ref.update(
         {
-            "status": "extracting",
+            "status": "processing",
             "updatedAt": SERVER_TIMESTAMP,
         }
     )
-    extraction_context.case_ref.update(
+    extraction_context.source_doc_ref.update(
         {
-            "status": "extracting",
+            "status": "processing",
             "updatedAt": SERVER_TIMESTAMP,
         }
     )
@@ -375,15 +375,7 @@ def _process_extraction_response(
     processed_fields: dict[str, Any] = {}
     validation_errors = []
 
-    if is_valid_document:
-        if not is_legible:
-            validation_errors.append(
-                {
-                    "rule": "legibility",
-                    "message": "Document is not legible enough to extract required fields",
-                }
-            )
-
+    if is_valid_document and is_legible:
         for field_id in document_configs.extracts_fields:
             if field_id not in document_configs.fields_config:
                 continue
@@ -405,45 +397,46 @@ def _process_extraction_response(
     )
 
 
+def _determine_extraction_status(extraction_result: ExtractionResult) -> tuple[str, str | None]:
+    if not extraction_result.valid_document:
+        return "invalid", extraction_result.validity_reason or None
+    if not extraction_result.legible:
+        return "invalid", "Document is not legible enough to extract required fields"
+    if extraction_result.validation_errors:
+        return "flagged", None
+    return "processed", None
+
+
 def _save_extraction_results(
     extraction_context: ExtractionContext, extraction_result: ExtractionResult, duration_ms: int
 ) -> None:
-    extraction_status = "extracted" if not extraction_result.validation_errors else "failed"
+    extraction_status, validity_reason = _determine_extraction_status(extraction_result)
 
-    extraction_update_data = {
-        "status": extraction_status,
-        "valid": extraction_result.valid_document,
-        "validityReason": extraction_result.validity_reason
-        if not extraction_result.valid_document
-        else None,
-        "legible": extraction_result.legible,
-        "fields": extraction_result.fields if extraction_result.valid_document else None,
-        "validationErrors": extraction_result.validation_errors
-        if extraction_result.validation_errors
-        else None,
-        "validationReason": None,
-        "extractionConfig": {
-            "model": extraction_result.model,
-            "langsmithPromptKey": extraction_result.langsmith_prompt_key,
-        },
-        "durationMs": duration_ms,
-        "extractedAt": SERVER_TIMESTAMP,
-        "updatedAt": SERVER_TIMESTAMP,
-    }
-
-    extraction_context.extraction_ref.update(extraction_update_data)
-
-    extraction_context.source_doc_ref.update(
+    extraction_context.extraction_ref.update(
         {
-            "latestExtractionId": extraction_context.extraction_data["extractionId"],
+            "status": extraction_status,
+            "valid": extraction_result.valid_document,
+            "validityReason": validity_reason,
+            "legible": extraction_result.legible,
+            "fields": extraction_result.fields if extraction_result.fields else None,
+            "validationErrors": extraction_result.validation_errors
+            if extraction_result.validation_errors
+            else None,
+            "extractionConfig": {
+                "model": extraction_result.model,
+                "langsmithPromptKey": extraction_result.langsmith_prompt_key,
+            },
+            "durationMs": duration_ms,
+            "extractedAt": SERVER_TIMESTAMP,
             "updatedAt": SERVER_TIMESTAMP,
         }
     )
 
-    extraction_context.case_ref.update(
+    extraction_context.source_doc_ref.update(
         {
+            "latestExtractionId": extraction_context.extraction_data["extractionId"],
             "status": extraction_status,
-            "extractionStatus": extraction_status,
+            "validityReason": validity_reason,
             "updatedAt": SERVER_TIMESTAMP,
         }
     )
@@ -460,10 +453,9 @@ def _handle_extraction_error(
             "updatedAt": SERVER_TIMESTAMP,
         }
     )
-    extraction_context.case_ref.update(
+    extraction_context.source_doc_ref.update(
         {
             "status": "failed",
-            "extractionStatus": "failed",
             "updatedAt": SERVER_TIMESTAMP,
         }
     )
@@ -478,7 +470,7 @@ def run_extraction(extraction_doc_id: str) -> None:
         return
 
     try:
-        _update_status_to_extracting(extraction_context)
+        _update_status_to_processing(extraction_context)
         document_configs = _load_document_configs(extraction_context)
         extraction_request = _prepare_extraction_request(extraction_context, document_configs)
         api_response, actual_model = _call_extraction_api(extraction_request)

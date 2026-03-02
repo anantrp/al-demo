@@ -203,21 +203,11 @@ All documents store their ID in the body for clean serialization.
   "userId": "firebase_auth_uid",
   "caseTypeId": "death_certificate_flow",
   "name": "Mom's death certificate processing",
-  "status": "draft",
-  "extractionStatus": null,
   "deletedAt": null,
   "createdAt": "timestamp",
   "updatedAt": "timestamp"
 }
 ```
-
-**Status values:**
-
-- `draft` - Case created, no file uploaded
-- `open` - File uploaded, not yet extracted
-- `extracting` - Extraction in progress
-- `extracted` - Extraction complete
-- `failed` - Extraction failed
 
 ---
 
@@ -231,6 +221,8 @@ All documents store their ID in the body for clean serialization.
   "sourceDocumentTypeId": "death_certificate_image",
   "isLatest": true,
   "latestExtractionId": "ext_abc123xyz",
+  "status": "processed",
+  "validityReason": null,
   "fileName": "death-cert.jpg",
   "storagePath": "cases/case_abc123xyz/attachments/doc_xyz789abc.jpg",
   "mimeType": "image/jpeg",
@@ -239,6 +231,14 @@ All documents store their ID in the body for clean serialization.
   "updatedAt": "timestamp"
 }
 ```
+
+**Status values** (mirrored from `extractions/{id}.status`):
+
+- `processing` - Extraction in progress
+- `processed` - Extraction complete, all fields valid
+- `invalid` - Wrong document type or illegible — `validityReason` is set
+- `flagged` - Valid and legible but field-level validation errors
+- `failed` - System or API exception
 
 ---
 
@@ -253,7 +253,7 @@ All documents store their ID in the body for clean serialization.
   "sourceDocumentTypeId": "death_certificate_image",
   "caseSourceDocumentId": "doc_xyz789abc",
   "version": 1,
-  "status": "extracted",
+  "status": "processed",
   "fields": {
     "deceased_name": {
       "value": "John Doe",
@@ -285,9 +285,11 @@ All documents store their ID in the body for clean serialization.
 **Status values:**
 
 - `pending` - Queued
-- `extracting` - In progress
-- `extracted` - Complete
-- `failed` - Error occurred
+- `processing` - In progress
+- `processed` - Complete, all fields valid
+- `invalid` - Wrong document type or illegible — `validityReason` is set
+- `flagged` - Valid and legible but field-level validation errors
+- `failed` - System or API exception
 
 **Validation errors format:**
 
@@ -499,7 +501,7 @@ extractions.where("extractionConfig.model", "==", "gpt-4o");
 - `userId` in all runtime collections (cases, extractions, generations)
 - `caseTypeId` in extractions and generations
 - `latestExtractionId` in sourceDocuments
-- `extractionStatus` in cases
+- `status` and `validityReason` in sourceDocuments (mirrored from extractions)
 - `templateName` in generations
 - `extractedFields` snapshot in generations
 

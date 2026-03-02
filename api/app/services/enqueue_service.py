@@ -29,8 +29,9 @@ def enqueue_extraction(
     source_doc_data = source_doc.to_dict()
     source_document_type_id = source_doc_data["sourceDocumentTypeId"]
 
-    extraction_ref = db.collection("extractions").document()
-    extraction_id = f"ext_{extraction_ref.id}"
+    auto_id = db.collection("extractions").document().id
+    extraction_id = f"ext_{auto_id}"
+    extraction_ref = db.collection("extractions").document(extraction_id)
 
     extraction_ref.set(
         {
@@ -46,5 +47,5 @@ def enqueue_extraction(
         }
     )
 
-    background_tasks.add_task(run_extraction, extraction_ref.id)
+    background_tasks.add_task(run_extraction, extraction_id)
     return {"extraction_id": extraction_id}

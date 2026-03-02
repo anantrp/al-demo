@@ -1,55 +1,72 @@
 # Document Extraction Results
 
-## Output Structure
+## Status Model
+
+### `extractions/{id}.status`
+
+| Value | Meaning |
+|---|---|
+| `pending` | Queued, not yet started |
+| `processing` | Extraction in progress |
+| `processed` | Valid, legible, all fields passed validation |
+| `invalid` | Wrong document type or illegible — `validityReason` is set |
+| `flagged` | Valid and legible but field-level validation errors — `validationErrors` is set |
+| `failed` | System or API exception — `errorMessage` is set |
+
+### `cases/{caseId}/sourceDocuments/{docId}` — mirrored fields
+
+The `status` and `validityReason` fields are mirrored onto the source document for efficient real-time display without fetching the full extraction document.
+
+---
+
+## Extraction Document Structure
 
 ### Top-Level Fields
 
 ```json
 {
-  "status": "extracted" | "failed",
+  "status": "processed | invalid | flagged | failed",
   "valid": boolean,
-  "validityReason": string | null,
+  "validityReason": "string | null",
   "legible": boolean,
-  "fields": object | null,
-  "validationErrors": array | null,
-  "validationReason": string | null,
-  "errorMessage": string | null,
-  "extractionConfig": { "model": string, "promptVersion": string },
-  "durationMs": number
+  "fields": "object | null",
+  "validationErrors": "array | null",
+  "errorMessage": "string | null",
+  "extractionConfig": { "model": "string", "langsmithPromptKey": "string" },
+  "durationMs": "number"
 }
 ```
 
-- **status**: `extracted` on success, `failed` on validation/execution errors
-- **valid**: Document matches expected type
-- **validityReason**: Why document is invalid (only when `valid: false`)
-- **legible**: Document quality sufficient for extraction
-- **fields**: Extracted data (only when `valid: true`, else `null`)
-- **validationErrors**: Schema violations, missing required fields, legibility issues
-- **validationReason**: Reserved for case-type custom validation
-- **errorMessage**: Set only on execution failures (API errors, exceptions)
+- **status**: outcome of the extraction (see table above)
+- **valid**: whether the document matches the expected type
+- **validityReason**: set when `status` is `invalid` — explains why (wrong type or illegible)
+- **legible**: whether the document was readable enough for extraction
+- **fields**: extracted data — only set when `valid: true` and `legible: true`, else `null`
+- **validationErrors**: field-level errors (schema violations, missing required fields) — only set when `status` is `flagged`
+- **errorMessage**: set only on system/API exceptions (`status: failed`)
 
 ### Field-Level Structure
 
 ```json
 {
-  "value": any,
-  "confidence": number,
-  "flagged": boolean,
-  "flagReason": string | null
+  "value": "any",
+  "confidence": "number",
+  "flagged": "boolean",
+  "flagReason": "string | null"
 }
 ```
 
-- **flagReason**: Only set for schema validation failures
+- **flagged / flagReason**: set for schema validation failures only
+
+---
 
 ## Scenarios
 
-### 1. Valid Document - All Good
-
-Perfect document with all fields extracted and validated successfully.
+### 1. Valid Document — All Good
 
 ```json
 {
-  "status": "extracted",
+  "status": "processed",
   "valid": true,
   "validityReason": null,
   "legible": true,
@@ -58,19 +75,19 @@ Perfect document with all fields extracted and validated successfully.
     "date_of_birth": { "value": "1945-03-15", "confidence": 0.95, "flagged": false, "flagReason": null },
     "age_at_death": { "value": 78, "confidence": 0.99, "flagged": false, "flagReason": null }
   },
-  "validationErrors": null,
-  "validationReason": null
+  "validationErrors": null
 }
 ```
 
-### 2. Valid Document - Schema Validation Errors
+### 2. Valid Document — Schema Validation Errors
 
-Fields fail schema validation (negative age, invalid SSN format).
+Fields fail schema validation (e.g. negative age, invalid SSN format).
 
 ```json
 {
-  "status": "failed",
+  "status": "flagged",
   "valid": true,
+  "validityReason": null,
   "legible": true,
   "fields": {
     "deceased_name": { "value": "Jane Doe", "confidence": 0.97, "flagged": false, "flagReason": null },
@@ -84,36 +101,35 @@ Fields fail schema validation (negative age, invalid SSN format).
 }
 ```
 
-### 3. Valid Document - Missing Required Fields
+### 3. Valid Document — Missing Required Fields
 
-Document is correct type but missing required fields. Note: missing fields have `value: null` but are NOT flagged.
+Document is the correct type but required fields could not be extracted.
 
 ```json
 {
-  "status": "failed",
+  "status": "flagged",
   "valid": true,
+  "validityReason": null,
   "legible": true,
   "fields": {
     "deceased_name": { "value": "Robert Wilson", "confidence": 0.96, "flagged": false, "flagReason": null },
     "date_of_birth": { "value": null, "confidence": 0.0, "flagged": false, "flagReason": null },
-    "age_at_death": { "value": null, "confidence": 0.0, "flagged": false, "flagReason": null },
-    "certificate_number": { "value": null, "confidence": 0.0, "flagged": false, "flagReason": null }
+    "age_at_death": { "value": null, "confidence": 0.0, "flagged": false, "flagReason": null }
   },
   "validationErrors": [
     { "rule": "required", "message": "date_of_birth is required" },
-    { "rule": "required", "message": "age_at_death is required" },
-    { "rule": "required", "message": "certificate_number is required" }
+    { "rule": "required", "message": "age_at_death is required" }
   ]
 }
 ```
 
 ### 4. Invalid Document Type
 
-Wrong document type (e.g., driver's license instead of death certificate). Fields are not extracted (`null`).
+Wrong document type (e.g. driver's license instead of death certificate). Fields are not extracted.
 
 ```json
 {
-  "status": "extracted",
+  "status": "invalid",
   "valid": false,
   "validityReason": "This appears to be a driver's license, not a death certificate.",
   "legible": true,
@@ -124,29 +140,22 @@ Wrong document type (e.g., driver's license instead of death certificate). Field
 
 ### 5. Illegible Document
 
-Correct type but too blurry/damaged to extract. Legibility error appears in `validationErrors`.
+Correct document type but too blurry or damaged to extract fields.
 
 ```json
 {
-  "status": "failed",
+  "status": "invalid",
   "valid": true,
+  "validityReason": "Document is not legible enough to extract required fields",
   "legible": false,
-  "fields": {
-    "deceased_name": { "value": null, "confidence": 0.3, "flagged": false, "flagReason": null },
-    "date_of_birth": { "value": null, "confidence": 0.2, "flagged": false, "flagReason": null },
-    "age_at_death": { "value": null, "confidence": 0.0, "flagged": false, "flagReason": null }
-  },
-  "validationErrors": [
-    { "rule": "legibility", "message": "Document is not legible enough to extract required fields" },
-    { "rule": "required", "message": "deceased_name is required" },
-    { "rule": "required", "message": "date_of_birth is required" }
-  ]
+  "fields": null,
+  "validationErrors": null
 }
 ```
 
 ### 6. Execution Failure
 
-API errors, network issues, or processing exceptions. Only `errorMessage` is set.
+API errors, network issues, or processing exceptions.
 
 ```json
 {
@@ -156,36 +165,23 @@ API errors, network issues, or processing exceptions. Only `errorMessage` is set
 }
 ```
 
-### 7. Custom Validation (Future)
-
-`validationReason` is reserved for case-type cross-field validation (e.g., date consistency, age calculations).
-
-```json
-{
-  "status": "failed",
-  "valid": true,
-  "legible": true,
-  "fields": { /* ... */ },
-  "validationReason": "Age at death (10) inconsistent with date of birth and death (3-year difference)"
-}
-```
+---
 
 ## Summary
 
-| Scenario | valid | validityReason | legible | fields | validationErrors | status |
-|----------|-------|----------------|---------|--------|------------------|--------|
-| All Good | true | null | true | {...} | null | extracted |
-| Schema Errors | true | null | true | {...} | [...] | failed |
-| Missing Required | true | null | true | {...} | [...] | failed |
-| Invalid Type | false | "..." | true | null | null | extracted |
-| Illegible | true | null | false | {...} | [...] | failed |
-| Execution Failure | - | - | - | - | - | failed |
+| Scenario | valid | legible | fields | validationErrors | status |
+|---|---|---|---|---|---|
+| All Good | true | true | {...} | null | processed |
+| Schema Errors | true | true | {...} | [...] | flagged |
+| Missing Required | true | true | {...} | [...] | flagged |
+| Invalid Type | false | true | null | null | invalid |
+| Illegible | true | false | null | null | invalid |
+| Execution Failure | — | — | — | — | failed |
 
 ### Key Rules
 
-- **errorMessage**: Only on execution failures (API/network errors)
-- **validityReason**: Only when `valid: false` (wrong document type)
-- **fields**: Only when `valid: true`, else `null`
-- **flagReason**: Only for schema validation failures
-- **validationReason**: Reserved for case-type custom validation
-- **status**: `extracted` on success, `failed` on validation/execution errors
+- **validityReason**: set when `status` is `invalid` (wrong type or illegible)
+- **fields**: only when `valid: true` and `legible: true`
+- **validationErrors**: only when `status` is `flagged`
+- **errorMessage**: only on system/API failures (`status: failed`)
+- **flagReason** on fields: only for schema validation failures, not for missing required fields

@@ -100,7 +100,6 @@ export default function CasePage() {
             <div>
               <EditableCaseName caseId={caseId} initialName={caseData?.name || ""} />
               <p className="text-sm text-muted-foreground">
-                Status: {caseData?.status} •{" "}
                 {caseData && (
                   <TooltipProvider>
                     <Tooltip>
@@ -119,11 +118,7 @@ export default function CasePage() {
             </div>
             {caseData && (
               <div className="space-y-6">
-                <SourceDocumentUpload
-                  caseId={caseId}
-                  caseTypeId={caseData.caseTypeId}
-                  caseStatus={caseData.status}
-                />
+                <SourceDocumentUpload caseId={caseId} caseTypeId={caseData.caseTypeId} />
               </div>
             )}
           </div>

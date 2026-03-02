@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import timedelta
 
 import firebase_admin
@@ -9,15 +10,16 @@ from app.config import settings
 
 _app: firebase_admin.App | None = None
 _cloud_credentials = None
+_cloud_project_id: str | None = None
 
 
 def _get_cloud_credentials():
     """Return refreshed ADC credentials, cached across calls."""
-    global _cloud_credentials
+    global _cloud_credentials, _cloud_project_id
     if _cloud_credentials is None:
         import google.auth
 
-        _cloud_credentials, _ = google.auth.default()
+        _cloud_credentials, _cloud_project_id = google.auth.default()
 
     if not _cloud_credentials.valid:
         from google.auth.transport.requests import Request
@@ -31,8 +33,15 @@ def _resolve_project_id() -> str:
     if settings.is_local:
         with open(settings.FIREBASE_SERVICE_ACCOUNT_PATH) as f:
             return json.load(f).get("project_id", "")
-    creds = _get_cloud_credentials()
-    return creds.project_id or getattr(creds, "project", "") or ""
+    _get_cloud_credentials()
+    creds = _cloud_credentials
+    project_id = (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or _cloud_project_id
+        or getattr(creds, "project_id", None)
+        or getattr(creds, "project", None)
+    )
+    return project_id or ""
 
 
 def init_firebase():

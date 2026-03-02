@@ -67,10 +67,24 @@ def get_storage_bucket():
 
 def get_signed_read_url(storage_path: str, expiry_minutes: int = 15) -> str:
     from datetime import timedelta
+    from google.auth.transport.requests import Request
+    import google.auth
 
     bucket = get_storage_bucket()
     blob = bucket.blob(storage_path)
     expiration = timedelta(minutes=expiry_minutes)
+
+    if settings.is_cloud:
+        creds, _ = google.auth.default()
+        _ = Request()
+
+        return blob.generate_signed_url(
+            version="v4",
+            expiration=expiration,
+            method="GET",
+            credentials=creds,
+            service_account_email=creds.service_account_email,
+        )
 
     return blob.generate_signed_url(
         version="v4",

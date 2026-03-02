@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes import users
+from app.routes.enqueue import router as enqueue_router
 from app.services.firebase import get_db, init_firebase
 
 
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="API Server", lifespan=lifespan)
 
 app.include_router(users.router)
+app.include_router(enqueue_router)
 
 app.add_middleware(
     CORSMiddleware,

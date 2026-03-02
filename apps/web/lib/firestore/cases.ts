@@ -29,6 +29,7 @@ export interface Case {
 
 export interface CaseData {
   caseId: string;
+  caseTypeId: string;
   name: string;
   status: string;
   createdAt: Date;
@@ -43,6 +44,7 @@ function mapCaseDocument(doc: QueryDocumentSnapshot): CaseData {
   const data = doc.data() as Case;
   return {
     caseId: data.caseId,
+    caseTypeId: data.caseTypeId,
     name: data.name,
     status: data.status,
     createdAt: convertTimestampToDate(data.createdAt),
@@ -94,6 +96,7 @@ export async function getCase(caseId: string): Promise<CaseData | null> {
   const data = caseDoc.data() as Case;
   return {
     caseId: data.caseId,
+    caseTypeId: data.caseTypeId,
     name: data.name,
     status: data.status,
     createdAt: convertTimestampToDate(data.createdAt),
@@ -152,6 +155,7 @@ export function listenToCase(
       const data = docSnapshot.data() as Case;
       onUpdate({
         caseId: data.caseId,
+        caseTypeId: data.caseTypeId,
         name: data.name,
         status: data.status,
         createdAt: convertTimestampToDate(data.createdAt),

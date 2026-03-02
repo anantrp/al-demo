@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:3000", "http://localhost:3001", "https://al-demo-9f7a9.vercel.app"],
+    "method": ["PUT", "GET"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]

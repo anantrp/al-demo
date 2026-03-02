@@ -2,8 +2,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /caseTypes/{caseTypeId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+
+      match /sourceDocuments/{sourceDocTypeId} {
+        allow read: if request.auth != null;
+        allow write: if false;
+      }
+
+      match /templates/{templateId} {
+        allow read: if request.auth != null;
+        allow write: if false;
+      }
+    }
+
     match /cases/{caseId} {
-      allow read: if request.auth != null && 
+      allow read: if request.auth != null &&
+                  request.auth.uid == resource.data.userId;
+      allow write: if false;
+
+      match /sourceDocuments/{docId} {
+        allow read: if request.auth != null &&
+                    get(/databases/$(database)/documents/cases/$(caseId)).data.userId == request.auth.uid;
+        allow write: if false;
+      }
+    }
+
+    match /extractions/{extractionId} {
+      allow read: if request.auth != null &&
+                  request.auth.uid == resource.data.userId;
+      allow write: if false;
+    }
+
+    match /generations/{generationId} {
+      allow read: if request.auth != null &&
                   request.auth.uid == resource.data.userId;
       allow write: if false;
     }

@@ -7,7 +7,7 @@ Complete setup guide for the project monorepo. Format-on-save and linting are pr
 1. **Open workspace file** (required for proper IDE integration):
 
    ```bash
-   cursor project.code-workspace
+   cursor al-demo.code-workspace
    ```
 
 2. **Install extensions** (if not already installed):
@@ -39,7 +39,7 @@ project/
 ├── api/                      # Python FastAPI (Ruff)
 ├── apps/web/                 # Next.js (ESLint + Prettier)
 ├── docs/                     # Documentation
-└── project.code-workspace    # Pre-configured IDE settings
+└── al-demo.code-workspace    # Pre-configured IDE settings
 ```
 
 ## What's Already Configured
@@ -71,16 +71,22 @@ apps/web/.env.local       # Next.js app environment variables (gitignored)
 
 **Note**: These files are gitignored. Never commit secrets to the repository.
 
-### Service Account JSON
+### Python API (api/.env)
 
-For local development, place service account JSON files in their respective project directories:
+The API uses `.env` for config. **Set `ENVIRONMENT=local`** when running locally—this is critical. Without it, Python uses Application Default Credentials and you will hit Google service account/auth errors. Copy from `api/.env.example` and set `FIREBASE_SERVICE_ACCOUNT_PATH` to your service account JSON file. Never commit service account files.
 
-```
-api/service-account.json        # For Python API
-apps/web/service-account.json   # For Next.js app (if needed)
-```
+### Next.js (apps/web/.env.local)
 
-**Note**: Service account JSON files should be gitignored and never committed.
+Uses Firebase client SDK (public env vars) and Admin SDK (server-only: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_STORAGE_BUCKET`). Copy from `apps/web/.env.example`.
+
+### Storage CORS
+
+For direct client uploads to work, set CORS on your Firebase Storage bucket. Use `firebase/storage.cors.json` as the config:
+
+1. Install [gcloud CLI](https://cloud.google.com/sdk/docs/install)
+2. `gcloud init` and `gcloud auth login`
+3. `gcloud config set project YOUR_PROJECT_ID`
+4. `gcloud storage buckets update gs://BUCKET_NAME --cors-file=firebase/storage.cors.json`
 
 ## Package Management
 
@@ -180,6 +186,8 @@ git commit --no-verify
 
 **Python interpreter wrong**: Set to `api/.venv/bin/python`
 
+**Python Google/Firebase auth errors**: Ensure `api/.env` has `ENVIRONMENT=local` so the API uses the service account file instead of Application Default Credentials.
+
 ## CI/CD
 
 ### Python
@@ -203,7 +211,7 @@ git commit --no-verify
 
 ## Key Files
 
-- `project.code-workspace` - IDE settings (format-on-save, linters)
+- `al-demo.code-workspace` - IDE settings (format-on-save, linters)
 - `api/pyproject.toml` - Ruff configuration
 - `apps/web/eslint.config.mjs` - ESLint rules
 - `apps/web/.prettierrc.json` - Prettier config

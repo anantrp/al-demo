@@ -16,6 +16,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listenToCase, CaseData } from "@/lib/firestore/cases";
 import { EditableCaseName } from "@/components/cases/editable-case-name";
+import { SourceDocumentUpload } from "@/components/cases/source-document-upload";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -116,11 +117,15 @@ export default function CasePage() {
                 )}
               </p>
             </div>
-            <div className="bg-muted/50 min-h-[400px] rounded-xl p-6">
-              <p className="text-muted-foreground">
-                Case details and document processing will appear here.
-              </p>
-            </div>
+            {caseData && (
+              <div className="space-y-6">
+                <SourceDocumentUpload
+                  caseId={caseId}
+                  caseTypeId={caseData.caseTypeId}
+                  caseStatus={caseData.status}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

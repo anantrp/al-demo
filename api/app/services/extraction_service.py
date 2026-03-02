@@ -8,7 +8,8 @@ from openai import OpenAI
 
 from app.config import settings
 from app.prompts.extraction import build_extraction_prompt
-from app.services.firebase import get_db, get_signed_read_url
+from app.services.firebase import get_db
+from app.services.storage import get_signed_read_url
 
 
 def _build_extraction_schema(

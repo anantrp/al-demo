@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listenToCase, CaseData } from "@/lib/firestore/cases";
 import { EditableCaseName } from "@/components/cases/editable-case-name";
 import { SourceDocumentUpload } from "@/components/cases/source-document-upload";
+import { UserFieldsForm } from "@/components/cases/user-fields-form";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -96,25 +97,34 @@ export default function CasePage() {
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            <div>
-              <EditableCaseName caseId={caseId} initialName={caseData?.name || ""} />
-              <p className="text-sm text-muted-foreground">
-                {caseData && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-default">
-                          {formatRelativeTime(caseData.updatedAt)}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{formatDateTime(caseData.updatedAt)}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </p>
+          <div className="flex flex-col gap-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <EditableCaseName caseId={caseId} initialName={caseData?.name || ""} />
+                <p className="text-sm text-muted-foreground">
+                  {caseData && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default">
+                            {formatRelativeTime(caseData.updatedAt)}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{formatDateTime(caseData.updatedAt)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </p>
+              </div>
+              {caseData && (
+                <UserFieldsForm
+                  caseId={caseId}
+                  caseTypeId={caseData.caseTypeId}
+                  initialValues={caseData.userFields}
+                />
+              )}
             </div>
             {caseData && (
               <div className="space-y-6">

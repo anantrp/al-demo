@@ -19,6 +19,7 @@ export interface Case {
   userId: string;
   caseTypeId: string;
   name: string;
+  userFields?: Record<string, string | number | boolean>;
   deletedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -28,6 +29,7 @@ export interface CaseData {
   caseId: string;
   caseTypeId: string;
   name: string;
+  userFields?: Record<string, string | number | boolean>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +44,7 @@ function mapCaseDocument(doc: QueryDocumentSnapshot): CaseData {
     caseId: data.caseId,
     caseTypeId: data.caseTypeId,
     name: data.name,
+    userFields: data.userFields,
     createdAt: convertTimestampToDate(data.createdAt),
     updatedAt: convertTimestampToDate(data.updatedAt),
   };
@@ -93,7 +96,7 @@ export async function getCase(caseId: string): Promise<CaseData | null> {
     caseId: data.caseId,
     caseTypeId: data.caseTypeId,
     name: data.name,
-    status: data.status,
+    userFields: data.userFields,
     createdAt: convertTimestampToDate(data.createdAt),
     updatedAt: convertTimestampToDate(data.updatedAt),
   };
@@ -152,6 +155,7 @@ export function listenToCase(
         caseId: data.caseId,
         caseTypeId: data.caseTypeId,
         name: data.name,
+        userFields: data.userFields,
         createdAt: convertTimestampToDate(data.createdAt),
         updatedAt: convertTimestampToDate(data.updatedAt),
       });

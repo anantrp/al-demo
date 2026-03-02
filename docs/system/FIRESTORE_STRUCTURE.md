@@ -50,6 +50,10 @@ All documents store their ID in the body for clean serialization.
   "caseTypeId": "death_certificate_flow",
   "name": "Death Certificate Processing",
   "description": "Process death certificates and generate administrative documents",
+  "userForm": {
+    "heading": "Your Information",
+    "subheading": "Provide your contact information and relationship to the deceased for this case."
+  },
   "fields": {
     "deceased_name": {
       "label": "Full Name of Deceased",
@@ -124,6 +128,108 @@ All documents store their ID in the body for clean serialization.
       }
     }
   },
+  "userFields": {
+    "full_name": {
+      "label": "Full Name",
+      "required": false,
+      "order": 1,
+      "cols": 2,
+      "placeholder": "Enter your full name",
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "address_line_1": {
+      "label": "Address Line 1",
+      "required": false,
+      "order": 2,
+      "cols": 2,
+      "placeholder": "Street address",
+      "schema": {
+        "type": "string"
+      }
+    },
+    "address_line_2": {
+      "label": "Address Line 2",
+      "required": false,
+      "order": 3,
+      "cols": 2,
+      "placeholder": "Apt, suite, unit, etc. (optional)",
+      "schema": {
+        "type": "string"
+      }
+    },
+    "city": {
+      "label": "City",
+      "required": false,
+      "order": 4,
+      "cols": 1,
+      "placeholder": "City",
+      "schema": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "label": "State",
+      "required": false,
+      "order": 5,
+      "cols": 1,
+      "placeholder": "Select state",
+      "options": [
+        { "label": "Alabama", "value": "AL" },
+        { "label": "Alaska", "value": "AK" },
+        { "label": "California", "value": "CA" },
+        { "label": "New York", "value": "NY" }
+      ],
+      "schema": {
+        "type": "string"
+      }
+    },
+    "zip_code": {
+      "label": "Zip Code",
+      "required": false,
+      "order": 6,
+      "cols": 1,
+      "placeholder": "12345",
+      "schema": {
+        "type": "string",
+        "pattern": "^\\d{5}(-\\d{4})?$"
+      }
+    },
+    "email_address": {
+      "label": "Email Address",
+      "required": false,
+      "order": 7,
+      "cols": 1,
+      "placeholder": "you@example.com",
+      "schema": {
+        "type": "string",
+        "format": "email"
+      }
+    },
+    "phone_number": {
+      "label": "Phone Number",
+      "required": false,
+      "order": 8,
+      "cols": 1,
+      "placeholder": "(555) 123-4567",
+      "schema": {
+        "type": "string",
+        "pattern": "^\\+?1?\\d{10,14}$"
+      }
+    },
+    "relationship": {
+      "label": "Relationship to Deceased",
+      "required": false,
+      "order": 9,
+      "cols": 2,
+      "placeholder": "e.g., Spouse, Son, Daughter, Executor",
+      "schema": {
+        "type": "string"
+      }
+    }
+  },
   "customValidations": [
     "date_order",
     "age_consistency",
@@ -136,6 +242,23 @@ All documents store their ID in the body for clean serialization.
   "updatedAt": "timestamp"
 }
 ```
+
+**User Form Configuration:**
+
+- `userForm`: Optional configuration for the user information form modal
+  - `heading`: Custom heading text for the form dialog (optional, defaults to "Your Information")
+  - `subheading`: Custom description text for the form dialog (optional)
+
+**Field Types:**
+
+- `fields`: Extracted from source documents (e.g., death certificate image)
+- `userFields`: Provided by the user (e.g., their contact information and relationship to deceased)
+  - `order`: Controls display order in form (optional, numeric)
+  - `cols`: Column span in 2-column grid layout (1 or 2, optional, defaults to 1)
+  - `placeholder`: Placeholder text for input/select fields (optional, string)
+  - `options`: Array of select options for dropdown fields (optional, array of `{label: string, value: string}`)
+    - When `options` is present, field renders as a shadcn Select component instead of an Input
+    - Example: US states, countries, predefined categories
 
 ---
 
@@ -184,6 +307,17 @@ All documents store their ID in the body for clean serialization.
     "certificate_number",
     "issuing_authority"
   ],
+  "referenceUserFields": [
+    "full_name",
+    "address_line_1",
+    "address_line_2",
+    "city",
+    "state",
+    "zip_code",
+    "email_address",
+    "phone_number",
+    "relationship"
+  ],
   "storagePath": "templates/death_certificate_flow/social_security/v1.docx",
   "version": "1.0.0",
   "isActive": true,
@@ -192,6 +326,11 @@ All documents store their ID in the body for clean serialization.
   "updatedAt": "timestamp"
 }
 ```
+
+**Template Field References:**
+
+- `referenceFields`: References extracted fields from source documents
+- `referenceUserFields`: References user-provided fields from case.userFields
 
 ---
 
@@ -203,11 +342,29 @@ All documents store their ID in the body for clean serialization.
   "userId": "firebase_auth_uid",
   "caseTypeId": "death_certificate_flow",
   "name": "Mom's death certificate processing",
+  "userFields": {
+    "full_name": "John Smith",
+    "address_line_1": "123 Main St",
+    "address_line_2": "Apt 4B",
+    "city": "San Francisco",
+    "state": "CA",
+    "zip_code": "94102",
+    "email_address": "john@example.com",
+    "phone_number": "5551234567",
+    "relationship": "Son"
+  },
   "deletedAt": null,
   "createdAt": "timestamp",
   "updatedAt": "timestamp"
 }
 ```
+
+**User Fields:**
+
+- Optional map of user-provided values
+- Keys correspond to field IDs defined in `caseType.userFields`
+- Updated via server action `updateCaseUserFields`
+- Can be referenced in document templates alongside extracted fields
 
 ---
 
@@ -356,7 +513,9 @@ All documents store their ID in the body for clean serialization.
 **Case Type → Templates**
 
 - One case type has many templates (subcollection)
-- Each template references fields from parent case type
+- Each template can reference both extracted fields and user fields from parent case type
+- `referenceFields`: References extracted data from source documents
+- `referenceUserFields`: References user-provided information
 
 **Case → Source Documents**
 

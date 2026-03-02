@@ -92,3 +92,43 @@ export async function updateCaseName(caseId: string, name: string): Promise<Upda
     return { success: false, error: "Failed to update case name. Please try again." };
   }
 }
+
+export interface UpdateCaseUserFieldsResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function updateCaseUserFields(
+  caseId: string,
+  userFields: Record<string, string | number | boolean>
+): Promise<UpdateCaseUserFieldsResult> {
+  try {
+    const user = await verifySession();
+
+    if (!user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    const caseRef = adminDb.collection("cases").doc(caseId);
+    const caseDoc = await caseRef.get();
+
+    if (!caseDoc.exists) {
+      return { success: false, error: "Case not found" };
+    }
+
+    const caseData = caseDoc.data();
+    if (caseData?.userId !== user.uid) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    await caseRef.update({
+      userFields,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating case user fields:", error);
+    return { success: false, error: "Failed to update user fields. Please try again." };
+  }
+}

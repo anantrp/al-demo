@@ -84,7 +84,7 @@ Uses Firebase client SDK (public env vars) and Admin SDK (server-only: `FIREBASE
 For direct client uploads to work, set CORS on your Firebase Storage bucket. Use `firebase/storage.cors.json` as the config:
 
 1. Install [gcloud CLI](https://cloud.google.com/sdk/docs/install)
-2. `gcloud init` and `gcloud auth login`
+2. [Authorize gcloud CLI](https://docs.cloud.google.com/sdk/docs/authorizing) (login and project management)
 3. `gcloud config set project YOUR_PROJECT_ID`
 4. `gcloud storage buckets update gs://BUCKET_NAME --cors-file=firebase/storage.cors.json`
 
@@ -187,6 +187,8 @@ git commit --no-verify
 **Python interpreter wrong**: Set to `api/.venv/bin/python`
 
 **Python Google/Firebase auth errors**: Ensure `api/.env` has `ENVIRONMENT=local` so the API uses the service account file instead of Application Default Credentials.
+
+**Cloud Run "private key to sign credentials" error**: Set `ENVIRONMENT=prod` (or `dev`) in Cloud Run env vars so the API uses Application Default Credentials and IAM signBlob for signed URLs. Enable the [IAM Service Account Credentials API](https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com). If the error persists, grant the Cloud Run service account `roles/iam.serviceAccountTokenCreator` on itself.
 
 ## CI/CD
 

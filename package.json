@@ -10,7 +10,7 @@
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/web",
-    "prepare": "husky install || true",
+    "prepare": "node -e \"if (process.env.CI === 'true') process.exit(0)\" && husky install || true",
     "seed": "tsx seed/seed.ts"
   },
   "devDependencies": {

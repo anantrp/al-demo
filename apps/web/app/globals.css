@@ -124,3 +124,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .cases-grid-cols {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  @media (min-width: 768px) {
+    .cases-grid-cols {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+}

@@ -139,7 +139,7 @@ export function CasesGrid({ userId }: CasesGridProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 cases-grid-cols">
         {[...Array(8)].map((_, i) => (
           <Card key={i}>
             <CardHeader className="min-h-[180px] p-6">
@@ -172,7 +172,7 @@ export function CasesGrid({ userId }: CasesGridProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 cases-grid-cols">
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Card className="cursor-pointer hover:shadow-lg hover:border-primary transition-all border-dashed border-2">
@@ -268,22 +268,6 @@ export function CasesGrid({ userId }: CasesGridProps) {
             <MoreHorizontal className="size-4 mr-2" />
             {loadingMore ? "Loading..." : "Load More Cases"}
           </Button>
-        </div>
-      )}
-
-      {!loading && cases.length === 0 && (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="border-dashed border-2 max-w-md">
-            <CardHeader className="text-center p-8">
-              <div className="mx-auto bg-muted text-muted-foreground p-4 rounded-full w-fit mb-4">
-                <FolderOpen className="size-8" />
-              </div>
-              <CardTitle>No Cases Yet</CardTitle>
-              <CardDescription className="mt-2">
-                Create your first case to get started with document processing
-              </CardDescription>
-            </CardHeader>
-          </Card>
         </div>
       )}
     </div>

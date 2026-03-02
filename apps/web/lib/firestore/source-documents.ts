@@ -48,6 +48,7 @@ export interface CaseSourceDocument {
   sourceDocumentTypeId: string;
   fileName: string;
   isLatest: boolean;
+  latestExtractionId?: string | null;
 }
 
 export async function getLatestCaseSourceDocuments(caseId: string): Promise<CaseSourceDocument[]> {

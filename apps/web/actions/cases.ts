@@ -35,7 +35,6 @@ export async function createCase(name: string): Promise<CreateCaseResult> {
       caseTypeId: "death_certificate_flow",
       name: name.trim(),
       status: "draft",
-      latestExtractionId: null,
       extractionStatus: null,
       deletedAt: null,
       createdAt: FieldValue.serverTimestamp(),

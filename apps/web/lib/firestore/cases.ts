@@ -20,7 +20,6 @@ export interface Case {
   caseTypeId: string;
   name: string;
   status: "draft" | "open" | "extracting" | "extracted" | "failed";
-  latestExtractionId: string | null;
   extractionStatus: string | null;
   deletedAt: Timestamp | null;
   createdAt: Timestamp;

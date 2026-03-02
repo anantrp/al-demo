@@ -10,11 +10,14 @@
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/web",
-    "prepare": "husky install || true"
+    "prepare": "husky install || true",
+    "seed": "tsx seed/seed.ts"
   },
   "devDependencies": {
+    "dotenv": "^16.4.7",
     "husky": "^9.1.7",
-    "lint-staged": "^15.4.3"
+    "lint-staged": "^15.4.3",
+    "tsx": "^4.19.2"
   },
   "lint-staged": {
     "api/**/*.py": [

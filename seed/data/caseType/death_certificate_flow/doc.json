@@ -1,0 +1,87 @@
+{
+  "caseTypeId": "death_certificate_flow",
+  "name": "Death Certificate Processing",
+  "description": "Process death certificates and generate administrative documents",
+  "fields": {
+    "deceased_name": {
+      "label": "Full Name of Deceased",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "date_of_birth": {
+      "label": "Date of Birth",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "format": "date"
+      }
+    },
+    "date_of_death": {
+      "label": "Date of Death",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "format": "date"
+      }
+    },
+    "age_at_death": {
+      "label": "Age at Death",
+      "required": true,
+      "schema": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "ssn": {
+      "label": "Social Security Number",
+      "required": false,
+      "schema": {
+        "type": "string",
+        "pattern": "^\\d{3}-\\d{2}-\\d{4}$"
+      }
+    },
+    "cause_of_death": {
+      "label": "Cause of Death",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "place_of_death": {
+      "label": "Place of Death",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "issuing_authority": {
+      "label": "Issuing Authority",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "certificate_number": {
+      "label": "Certificate Number",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "customValidations": [
+    "date_order",
+    "age_consistency",
+    "ssn_format",
+    "no_future_date"
+  ],
+  "isActive": true,
+  "deletedAt": null
+}

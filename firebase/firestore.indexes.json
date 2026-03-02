@@ -10,11 +10,7 @@
         },
         {
           "fieldPath": "deletedAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
+          "order": "ASCENDING"
         },
         {
           "fieldPath": "updatedAt",

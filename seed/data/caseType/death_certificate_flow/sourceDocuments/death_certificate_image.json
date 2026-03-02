@@ -1,0 +1,20 @@
+{
+  "sourceDocumentTypeId": "death_certificate_image",
+  "name": "Death Certificate Image",
+  "description": "Scanned or photographed death certificate",
+  "extractsFields": [
+    "deceased_name",
+    "date_of_birth",
+    "date_of_death",
+    "age_at_death",
+    "ssn",
+    "cause_of_death",
+    "place_of_death",
+    "issuing_authority",
+    "certificate_number"
+  ],
+  "acceptedMimeTypes": ["image/jpeg", "image/png"],
+  "maxFileSizeMB": 10,
+  "isActive": true,
+  "deletedAt": null
+}

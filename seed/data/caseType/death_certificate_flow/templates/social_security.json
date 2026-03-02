@@ -1,0 +1,18 @@
+{
+  "templateId": "social_security",
+  "name": "Social Security Administration - Report of Death",
+  "description": "Official notification to SSA of deceased individual",
+  "referenceFields": [
+    "deceased_name",
+    "ssn",
+    "date_of_death",
+    "date_of_birth",
+    "place_of_death",
+    "certificate_number",
+    "issuing_authority"
+  ],
+  "storagePath": "templates/death_certificate_flow/social_security/v1.docx",
+  "version": "1.0.0",
+  "isActive": true,
+  "deletedAt": null
+}

@@ -15,6 +15,9 @@
   ],
   "acceptedMimeTypes": ["image/jpeg", "image/png"],
   "maxFileSizeMB": 10,
+  "extractionConfig": {
+    "langsmithPromptKey": "death-certificate-extraction"
+  },
   "isActive": true,
   "deletedAt": null
 }

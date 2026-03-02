@@ -1,14 +1,15 @@
-import json
 import time
+import warnings
 from dataclasses import dataclass
 from typing import Any
 
 import jsonschema
 from google.cloud.firestore_v1 import SERVER_TIMESTAMP
-from openai import OpenAI
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
+from langsmith import Client as LangSmithClient
 
 from app.config import settings
-from app.prompts.extraction import build_extraction_prompt
 from app.services.firebase import get_db
 from app.services.storage import get_signed_read_url
 
@@ -32,17 +33,20 @@ class DocumentConfigs:
     extracts_fields: list[str]
     doc_name: str
     doc_description: str
+    langsmith_prompt_key: str
     extraction_model: str
 
 
 @dataclass
 class ExtractionRequest:
-    prompt: str
     schema: dict[str, Any]
     signed_url: str
-    model: str
+    langsmith_prompt_key: str
+    doc_name: str
+    doc_description: str
     field_descriptions: list[str]
     required_fields: list[str]
+    model: str
 
 
 @dataclass
@@ -53,6 +57,7 @@ class ExtractionResult:
     fields: dict[str, Any]
     validation_errors: list[dict[str, str]]
     model: str
+    langsmith_prompt_key: str
 
 
 def _load_extraction_context(extraction_doc_id: str) -> ExtractionContext:
@@ -129,13 +134,16 @@ def _load_document_configs(extraction_context: ExtractionContext) -> DocumentCon
     extracts_fields = source_type_data.get("extractsFields", [])
     doc_name = source_type_data.get("name", "document")
     doc_description = source_type_data.get("description", "")
-    extraction_model = source_type_data.get("extractionConfig", {}).get("model", "gpt-5-mini")
+    extraction_config = source_type_data.get("extractionConfig", {})
+    langsmith_prompt_key = extraction_config.get("langsmithPromptKey", "")
+    extraction_model = extraction_config.get("model", "")
 
     return DocumentConfigs(
         fields_config=fields_config,
         extracts_fields=extracts_fields,
         doc_name=doc_name,
         doc_description=doc_description,
+        langsmith_prompt_key=langsmith_prompt_key,
         extraction_model=extraction_model,
     )
 
@@ -236,15 +244,11 @@ def _build_extraction_schema(
 def _prepare_extraction_request(
     extraction_context: ExtractionContext, document_configs: DocumentConfigs
 ) -> ExtractionRequest:
+    if not document_configs.langsmith_prompt_key:
+        raise ValueError("langsmithPromptKey is required in extractionConfig")
+
     field_descriptions, required_fields = _build_field_descriptions(
         document_configs.extracts_fields, document_configs.fields_config
-    )
-
-    prompt = build_extraction_prompt(
-        field_descriptions,
-        document_configs.doc_name,
-        document_configs.doc_description,
-        required_fields,
     )
 
     extraction_schema = _build_extraction_schema(
@@ -260,49 +264,54 @@ def _prepare_extraction_request(
     signed_url = get_signed_read_url(extraction_context.storage_path, expiry_minutes=15)
 
     return ExtractionRequest(
-        prompt=prompt,
         schema=extraction_schema,
         signed_url=signed_url,
-        model=document_configs.extraction_model,
+        langsmith_prompt_key=document_configs.langsmith_prompt_key,
+        doc_name=document_configs.doc_name,
+        doc_description=document_configs.doc_description,
         field_descriptions=field_descriptions,
         required_fields=required_fields,
+        model=document_configs.extraction_model,
     )
 
 
-def _call_extraction_api(request: ExtractionRequest) -> dict[str, Any]:
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
-    response = client.chat.completions.create(
-        model=request.model,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": request.prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": request.signed_url,
-                            "detail": "high",
-                        },
-                    },
-                ],
-            }
-        ],
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": "extraction_result",
-                "strict": True,
-                "schema": request.schema,
-            },
-        },
+def _call_extraction_api(request: ExtractionRequest) -> tuple[dict[str, Any], str]:
+    langsmith_client = LangSmithClient(
+        api_key=settings.LANGSMITH_API_KEY,
+        api_url=settings.LANGSMITH_ENDPOINT,
+    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*extra_headers.*")
+        runnable = langsmith_client.pull_prompt(request.langsmith_prompt_key, include_model=True)
+
+    prompt_template = runnable.first
+    langsmith_llm = runnable.last
+
+    model_name = request.model or langsmith_llm.model_name
+    llm = ChatOpenAI(model=model_name, api_key=settings.OPENAI_API_KEY)
+    schema = {"title": "extraction_result", **request.schema}
+    structured_llm = llm.with_structured_output(schema, strict=True)
+
+    formatted_messages = prompt_template.format_messages(
+        doc_name=request.doc_name,
+        doc_description=request.doc_description,
+        fields_section="\n".join(request.field_descriptions),
+        required_fields_section=", ".join(request.required_fields)
+        if request.required_fields
+        else "none",
     )
 
-    content = response.choices[0].message.content
-    if not content:
-        raise ValueError("Empty response from model")
+    last_message = formatted_messages[-1]
+    multimodal_last = HumanMessage(
+        content=[
+            {"type": "text", "text": last_message.content},
+            {"type": "image_url", "image_url": {"url": request.signed_url, "detail": "high"}},
+        ]
+    )
+    messages = [*formatted_messages[:-1], multimodal_last]
 
-    return json.loads(content)
+    result = structured_llm.invoke(messages)
+    return result, llm.model_name
 
 
 def _validate_field_value(value: Any, field_id: str, field_context: dict[str, Any]) -> None:
@@ -356,7 +365,7 @@ def _process_field(
 
 
 def _process_extraction_response(
-    raw_response: dict[str, Any], document_configs: DocumentConfigs
+    raw_response: dict[str, Any], document_configs: DocumentConfigs, actual_model: str
 ) -> ExtractionResult:
     is_valid_document = raw_response.get("valid_document", True)
     validity_reason = raw_response.get("validity_reason", "")
@@ -391,7 +400,8 @@ def _process_extraction_response(
         legible=is_legible,
         fields=processed_fields,
         validation_errors=validation_errors,
-        model=document_configs.extraction_model,
+        model=actual_model,
+        langsmith_prompt_key=document_configs.langsmith_prompt_key,
     )
 
 
@@ -414,7 +424,7 @@ def _save_extraction_results(
         "validationReason": None,
         "extractionConfig": {
             "model": extraction_result.model,
-            "promptVersion": "v1",
+            "langsmithPromptKey": extraction_result.langsmith_prompt_key,
         },
         "durationMs": duration_ms,
         "extractedAt": SERVER_TIMESTAMP,
@@ -471,8 +481,10 @@ def run_extraction(extraction_doc_id: str) -> None:
         _update_status_to_extracting(extraction_context)
         document_configs = _load_document_configs(extraction_context)
         extraction_request = _prepare_extraction_request(extraction_context, document_configs)
-        api_response = _call_extraction_api(extraction_request)
-        extraction_result = _process_extraction_response(api_response, document_configs)
+        api_response, actual_model = _call_extraction_api(extraction_request)
+        extraction_result = _process_extraction_response(
+            api_response, document_configs, actual_model
+        )
 
         duration_ms = int((time.time() - start_time) * 1000)
         _save_extraction_results(extraction_context, extraction_result, duration_ms)

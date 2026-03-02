@@ -18,6 +18,10 @@ class Settings:
 
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
+    LANGSMITH_API_KEY: str = os.getenv("LANGSMITH_API_KEY", "")
+    LANGSMITH_PROJECT: str = os.getenv("LANGCHAIN_PROJECT", "default")
+    LANGSMITH_ENDPOINT: str = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+
     API_KEY: str = os.getenv("API_KEY", "")
 
     GCP_PROJECT_ID: str = os.getenv("GOOGLE_CLOUD_PROJECT", "")
@@ -43,6 +47,11 @@ class Settings:
         if not self.OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY is required. Set it in .env or environment variables.")
 
+        if not self.LANGSMITH_API_KEY:
+            raise ValueError(
+                "LANGSMITH_API_KEY is required. Set it in .env or environment variables."
+            )
+
     @property
     def is_local(self) -> bool:
         return self.ENVIRONMENT == "local"
@@ -65,7 +74,8 @@ class Settings:
             f"ENVIRONMENT={self.ENVIRONMENT}, "
             f"is_local={self.is_local}, "
             f"FIREBASE_STORAGE_BUCKET={self.FIREBASE_STORAGE_BUCKET}, "
-            f"GCP_PROJECT_ID={self.GCP_PROJECT_ID}"
+            f"GCP_PROJECT_ID={self.GCP_PROJECT_ID}, "
+            f"LANGSMITH_PROJECT={self.LANGSMITH_PROJECT}"
             f")"
         )
 

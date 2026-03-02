@@ -1,80 +1,39 @@
-import json
-import os
 from datetime import timedelta
 
 import firebase_admin
 from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials, firestore, storage
+from google.cloud.firestore_v1.base_client import BaseClient
+from google.cloud.storage import Bucket
 
 from app.config import settings
 
 _app: firebase_admin.App | None = None
-_cloud_credentials = None
-_cloud_project_id: str | None = None
 
 
-def _get_cloud_credentials():
-    """Return refreshed ADC credentials, cached across calls."""
-    global _cloud_credentials, _cloud_project_id
-    if _cloud_credentials is None:
-        import google.auth
-
-        _cloud_credentials, _cloud_project_id = google.auth.default()
-
-    if not _cloud_credentials.valid:
-        from google.auth.transport.requests import Request
-
-        _cloud_credentials.refresh(Request())
-
-    return _cloud_credentials
-
-
-def _resolve_project_id() -> str:
-    if settings.is_local:
-        with open(settings.FIREBASE_SERVICE_ACCOUNT_PATH) as f:
-            return json.load(f).get("project_id", "")
-    _get_cloud_credentials()
-    creds = _cloud_credentials
-    project_id = (
-        os.getenv("GOOGLE_CLOUD_PROJECT")
-        or _cloud_project_id
-        or getattr(creds, "project_id", None)
-        or getattr(creds, "project", None)
-    )
-    return project_id or ""
-
-
-def init_firebase():
+def init_firebase() -> None:
     global _app
     if _app is not None:
         return
 
-    if not settings.FIREBASE_STORAGE_BUCKET:
-        raise ValueError("FIREBASE_STORAGE_BUCKET is required. Set it in your .env file.")
+    try:
+        if settings.is_local:
+            cred = credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_PATH)
+        else:
+            cred = credentials.ApplicationDefault()
 
-    if settings.is_local:
-        cred = credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_PATH)
-    else:
-        cred = credentials.ApplicationDefault()
-
-    project_id = _resolve_project_id()
-    if not project_id:
-        raise ValueError(
-            "Could not determine GCP project ID. "
-            "Local: ensure service account JSON has project_id. "
-            "Cloud: ensure GOOGLE_CLOUD_PROJECT is set (automatic on Cloud Run)."
+        _app = firebase_admin.initialize_app(
+            cred,
+            {
+                "storageBucket": settings.FIREBASE_STORAGE_BUCKET,
+            },
         )
 
-    _app = firebase_admin.initialize_app(
-        cred,
-        {
-            "storageBucket": settings.FIREBASE_STORAGE_BUCKET,
-            "projectId": project_id,
-        },
-    )
+    except Exception:
+        raise
 
 
-def get_db():
+def get_db() -> BaseClient:
     if _app is None:
         init_firebase()
     return firestore.client()
@@ -86,7 +45,7 @@ def get_auth():
     return firebase_auth
 
 
-def get_storage_bucket():
+def get_storage_bucket() -> Bucket:
     if _app is None:
         init_firebase()
     return storage.bucket()
@@ -95,29 +54,74 @@ def get_storage_bucket():
 def get_signed_read_url(storage_path: str, expiry_minutes: int = 15) -> str:
     bucket = get_storage_bucket()
     blob = bucket.blob(storage_path)
-    expiration = timedelta(minutes=expiry_minutes)
 
-    if settings.is_local:
-        return blob.generate_signed_url(
+    try:
+        url = blob.generate_signed_url(
             version="v4",
-            expiration=expiration,
+            expiration=timedelta(minutes=expiry_minutes),
             method="GET",
         )
+        return url
+    except Exception as e:
+        if "does not have permission to sign" in str(e) or "SSL" in str(e):
+            raise RuntimeError(
+                "Service account lacks self-signing permission. "
+                "Grant roles/iam.serviceAccountTokenCreator to the service account on itself:\n"
+                "gcloud iam service-accounts add-iam-policy-binding YOUR_SA@PROJECT.iam.gserviceaccount.com "
+                "--member='serviceAccount:YOUR_SA@PROJECT.iam.gserviceaccount.com' "
+                "--role='roles/iam.serviceAccountTokenCreator'"
+            ) from e
+        raise
 
-    creds = _get_cloud_credentials()
-    return blob.generate_signed_url(
-        version="v4",
-        expiration=expiration,
-        method="GET",
-        service_account_email=creds.service_account_email,
-        access_token=creds.token,
-    )
+
+def get_signed_upload_url(
+    storage_path: str,
+    content_type: str = "application/octet-stream",
+    expiry_minutes: int = 5,
+) -> str:
+    bucket = get_storage_bucket()
+    blob = bucket.blob(storage_path)
+
+    try:
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=expiry_minutes),
+            method="PUT",
+            content_type=content_type,
+        )
+        return url
+    except Exception as e:
+        if "does not have permission to sign" in str(e) or "SSL" in str(e):
+            raise RuntimeError(
+                "Service account lacks self-signing permission. "
+                "See get_signed_read_url() error message for fix."
+            ) from e
+        raise
 
 
-def verify_id_token(id_token: str):
+def verify_id_token(id_token: str) -> dict:
     if _app is None:
         init_firebase()
     try:
         return firebase_auth.verify_id_token(id_token)
     except Exception as e:
-        raise ValueError(f"Invalid token: {e!s}") from e
+        raise ValueError(f"Invalid token: {e}") from e
+
+
+def upload_file(storage_path: str, file_content: bytes, content_type: str) -> str:
+    bucket = get_storage_bucket()
+    blob = bucket.blob(storage_path)
+    blob.upload_from_string(file_content, content_type=content_type)
+    return storage_path
+
+
+def delete_file(storage_path: str) -> None:
+    bucket = get_storage_bucket()
+    blob = bucket.blob(storage_path)
+    blob.delete()
+
+
+def file_exists(storage_path: str) -> bool:
+    bucket = get_storage_bucket()
+    blob = bucket.blob(storage_path)
+    return blob.exists()

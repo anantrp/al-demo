@@ -16,12 +16,16 @@ class Settings:
     FIREBASE_STORAGE_BUCKET: str = os.getenv("FIREBASE_STORAGE_BUCKET")
 
     @property
-    def is_production(self) -> bool:
-        return self.ENVIRONMENT == "prod"
+    def is_local(self) -> bool:
+        return self.ENVIRONMENT == "local"
 
     @property
     def is_cloud(self) -> bool:
-        return self.ENVIRONMENT in ["dev", "prod"]
+        return not self.is_local
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT == "prod"
 
 
 settings = Settings()

@@ -54,10 +54,6 @@ export function EditableCaseName({ caseId, initialName }: EditableCaseNameProps)
     setIsSaving(false);
 
     if (result.success) {
-      toast({
-        title: "Success",
-        description: "Case name updated successfully",
-      });
       setIsEditing(false);
     } else {
       toast({

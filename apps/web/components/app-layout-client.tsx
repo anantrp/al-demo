@@ -13,7 +13,7 @@ type UserData = {
 
 export function AppLayoutClient({ user, children }: { user: UserData; children: React.ReactNode }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar user={user} />
       <SidebarInset>{children}</SidebarInset>
       <Toaster />

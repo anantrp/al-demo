@@ -61,7 +61,7 @@ export async function getCases(
     casesRef,
     where("userId", "==", userId),
     where("deletedAt", "==", null),
-    orderBy("createdAt", "desc"),
+    orderBy("updatedAt", "desc"),
     limit(limitCount)
   );
 
@@ -70,7 +70,7 @@ export async function getCases(
       casesRef,
       where("userId", "==", userId),
       where("deletedAt", "==", null),
-      orderBy("createdAt", "desc"),
+      orderBy("updatedAt", "desc"),
       startAfter(lastDoc),
       limit(limitCount)
     );
@@ -112,7 +112,7 @@ export function listenToCases(
     casesRef,
     where("userId", "==", userId),
     where("deletedAt", "==", null),
-    orderBy("createdAt", "desc"),
+    orderBy("updatedAt", "desc"),
     limit(limitCount)
   );
 

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { GalleryVerticalEnd } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
-import { NavCases } from "@/components/cases/nav-cases";
 import {
   Sidebar,
   SidebarContent,
@@ -62,9 +61,7 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <NavCases userId={user.uid} />
-      </SidebarContent>
+      <SidebarContent />
       <SidebarFooter>
         <NavUser user={userData} />
       </SidebarFooter>

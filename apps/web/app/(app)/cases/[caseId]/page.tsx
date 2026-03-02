@@ -16,6 +16,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listenToCase, CaseData } from "@/lib/firestore/cases";
 import { EditableCaseName } from "@/components/cases/editable-case-name";
+import { formatDateTime, formatRelativeTime } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function CasePage() {
   const params = useParams();
@@ -96,7 +98,23 @@ export default function CasePage() {
           <div className="flex flex-col gap-4">
             <div>
               <EditableCaseName caseId={caseId} initialName={caseData?.name || ""} />
-              <p className="text-sm text-muted-foreground">Status: {caseData?.status}</p>
+              <p className="text-sm text-muted-foreground">
+                Status: {caseData?.status} •{" "}
+                {caseData && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default">
+                          {formatRelativeTime(caseData.updatedAt)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{formatDateTime(caseData.updatedAt)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </p>
             </div>
             <div className="bg-muted/50 min-h-[400px] rounded-xl p-6">
               <p className="text-muted-foreground">

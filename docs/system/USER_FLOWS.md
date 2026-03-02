@@ -106,7 +106,7 @@ FastAPI Worker:
   1. Load extraction doc, get caseId + sourceDocumentId
   2. Load case, caseType, sourceDocument config
   3. Update extraction (status: "extracting")
-  4. Update case (status: "extracting", latestExtractionId)
+  4. Update case (status: "extracting")
      ↓ onSnapshot fires → UI shows "Extracting fields..."
 
   5. Download image from Storage
@@ -127,6 +127,8 @@ FastAPI Worker:
        - fields, validationErrors
        - extractionConfig (model, temp, promptVersion)
        - status, extractedAt, durationMs
+     - Update sourceDocument:
+       - latestExtractionId: extraction.extractionId
      - Update case:
        - extractionStatus: extraction.status
        - status: "extracted" (if successful)

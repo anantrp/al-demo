@@ -151,7 +151,7 @@ graph TB
 **Denormalization for performance**
 
 - `userId`, `caseTypeId` in extractions/generations
-- `latestExtractionId` on case
+- `latestExtractionId` on sourceDocument
 - Rationale: Eliminates joins, enables direct filtering, supports analytics
 
 ### Security Model
@@ -296,7 +296,8 @@ graph TB
    - GPT-4 Vision extraction
    - JSON Schema + custom validation
    - Update extraction (fields, status: extracted)
-   - Update case (latestExtractionId, status: extracted)
+   - Update sourceDocument (latestExtractionId)
+   - Update case (status: extracted)
    ↓
 3. Client onSnapshot: Extraction complete, display fields
 ```

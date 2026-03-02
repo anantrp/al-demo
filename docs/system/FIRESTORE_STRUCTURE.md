@@ -204,7 +204,6 @@ All documents store their ID in the body for clean serialization.
   "caseTypeId": "death_certificate_flow",
   "name": "Mom's death certificate processing",
   "status": "draft",
-  "latestExtractionId": null,
   "extractionStatus": null,
   "deletedAt": null,
   "createdAt": "timestamp",
@@ -231,11 +230,13 @@ All documents store their ID in the body for clean serialization.
   "userId": "firebase_auth_uid",
   "sourceDocumentTypeId": "death_certificate_image",
   "isLatest": true,
+  "latestExtractionId": "ext_abc123xyz",
   "fileName": "death-cert.jpg",
   "storagePath": "cases/case_abc123xyz/attachments/doc_xyz789abc.jpg",
   "mimeType": "image/jpeg",
   "fileSizeBytes": 2458624,
-  "uploadedAt": "timestamp"
+  "uploadedAt": "timestamp",
+  "updatedAt": "timestamp"
 }
 ```
 
@@ -497,7 +498,7 @@ extractions.where("extractionConfig.model", "==", "gpt-4o");
 
 - `userId` in all runtime collections (cases, extractions, generations)
 - `caseTypeId` in extractions and generations
-- `latestExtractionId` in cases
+- `latestExtractionId` in sourceDocuments
 - `extractionStatus` in cases
 - `templateName` in generations
 - `extractedFields` snapshot in generations

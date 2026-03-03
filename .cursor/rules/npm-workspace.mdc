@@ -1,0 +1,38 @@
+---
+description: Always use npm workspace commands for package management
+alwaysApply: true
+---
+
+# NPM Workspace Usage
+
+This project uses npm workspaces. Always run npm commands from the repository root using workspace flags.
+
+## Installing Packages
+
+```bash
+# ✅ GOOD - Install from root with workspace flag
+cd /home/anant/work/anant/projects/doc-workflow-project/al-demo
+npm install <package-name> -w apps/web
+
+# ❌ BAD - Don't cd into workspace and install
+cd apps/web
+npm install <package-name>
+```
+
+## Running Scripts
+
+```bash
+# ✅ GOOD - Run scripts from root
+npm run dev --workspace=apps/web
+npm run build --workspace=apps/web
+
+# ❌ BAD - Don't cd into workspace
+cd apps/web
+npm run dev
+```
+
+## Workspace Structure
+
+- Root: `/home/anant/work/anant/projects/doc-workflow-project/al-demo`
+- Web app: `apps/web`
+- API: `api` (Python, uses uv)

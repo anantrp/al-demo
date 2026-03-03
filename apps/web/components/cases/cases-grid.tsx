@@ -139,17 +139,18 @@ export function CasesGrid({ userId }: CasesGridProps) {
 
   if (loading) {
     return (
-      <div className="grid gap-4 cases-grid-cols">
+      <div className="grid gap-4 md:gap-6 cases-grid-cols">
         {[...Array(8)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="min-h-[180px] p-6">
-              <div className="flex items-start gap-3">
-                <Skeleton className="size-10 rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
+          <Card key={i} className="overflow-hidden">
+            <CardHeader className="p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <Skeleton className="size-10 rounded-lg shrink-0" />
+                <div className="flex-1 space-y-2 min-w-0">
+                  <Skeleton className="h-5 w-full max-w-[200px]" />
+                  <Skeleton className="h-4 w-3/4" />
                 </div>
               </div>
+              <Skeleton className="h-4 w-24 mt-auto" />
             </CardHeader>
           </Card>
         ))}
@@ -160,36 +161,34 @@ export function CasesGrid({ userId }: CasesGridProps) {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="border-red-200 dark:border-red-800">
-          <CardHeader>
-            <CardTitle className="text-red-600 dark:text-red-400">Error</CardTitle>
-            <CardDescription>{error}</CardDescription>
+        <Card className="border-destructive/50 max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <CardTitle className="text-destructive">Error Loading Cases</CardTitle>
+            <CardDescription className="mt-2">{error}</CardDescription>
           </CardHeader>
         </Card>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 cases-grid-cols">
+  if (cases.length === 0 && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center px-4">
+        <div className="bg-muted/50 p-4 rounded-full mb-4">
+          <FolderOpen className="size-12 text-muted-foreground" />
+        </div>
+        <h2 className="text-2xl font-semibold mb-2">No Cases Yet</h2>
+        <p className="text-muted-foreground mb-6 max-w-md">
+          Create your first case to start processing documents and managing your workflow.
+        </p>
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
-            <Card className="cursor-pointer hover:shadow-lg hover:border-primary transition-all border-dashed border-2">
-              <CardHeader className="flex items-center justify-center min-h-[180px] p-6">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="bg-primary/10 text-primary p-3 rounded-full">
-                    <Plus className="size-8" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">Create New Case</CardTitle>
-                    <CardDescription className="mt-1">Start processing documents</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
+            <Button size="lg">
+              <Plus className="size-4 mr-2" />
+              Create Your First Case
+            </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleCreateCase}>
               <DialogHeader>
                 <DialogTitle>Create Case</DialogTitle>
@@ -209,9 +208,7 @@ export function CasesGrid({ userId }: CasesGridProps) {
                     autoFocus
                   />
                 </div>
-                {createError && (
-                  <div className="text-sm text-red-600 dark:text-red-400">{createError}</div>
-                )}
+                {createError && <div className="text-sm text-destructive">{createError}</div>}
               </div>
               <DialogFooter>
                 <Button
@@ -223,7 +220,70 @@ export function CasesGrid({ userId }: CasesGridProps) {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={createLoading || !caseName.trim()}>
-                  {createLoading ? "Creating..." : "Create"}
+                  {createLoading ? "Creating..." : "Create Case"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:gap-6 cases-grid-cols">
+        <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+          <DialogTrigger asChild>
+            <Card className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all border-dashed border-2 overflow-hidden">
+              <CardHeader className="h-full min-h-[160px] md:min-h-[180px] flex items-center justify-center p-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="bg-primary/10 text-primary p-3 rounded-full transition-transform hover:scale-110">
+                    <Plus className="size-6 md:size-8" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base md:text-lg">Create New Case</CardTitle>
+                    <CardDescription className="mt-1 text-xs md:text-sm">
+                      Start processing documents
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleCreateCase}>
+              <DialogHeader>
+                <DialogTitle>Create Case</DialogTitle>
+                <DialogDescription>
+                  Create a new case to begin processing documents.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="case-name">Case Name</Label>
+                  <Input
+                    id="case-name"
+                    placeholder="Enter case name"
+                    value={caseName}
+                    onChange={(e) => setCaseName(e.target.value)}
+                    disabled={createLoading}
+                    autoFocus
+                  />
+                </div>
+                {createError && <div className="text-sm text-destructive">{createError}</div>}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDialogOpenChange(false)}
+                  disabled={createLoading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createLoading || !caseName.trim()}>
+                  {createLoading ? "Creating..." : "Create Case"}
                 </Button>
               </DialogFooter>
             </form>
@@ -233,22 +293,24 @@ export function CasesGrid({ userId }: CasesGridProps) {
         {cases.map((caseItem) => (
           <Card
             key={caseItem.caseId}
-            className="cursor-pointer hover:shadow-lg hover:border-primary transition-all group"
+            className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all group overflow-hidden"
             onClick={() => router.push(`/cases/${caseItem.caseId}`)}
           >
-            <CardHeader className="min-h-[180px] flex flex-col justify-between p-6">
-              <div className="flex items-start gap-3">
-                <div className="bg-primary/10 text-primary p-2.5 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <FolderOpen className="size-5" />
+            <CardHeader className="h-full min-h-[160px] md:min-h-[180px] flex flex-col justify-between p-5 md:p-6">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="bg-primary/10 text-primary p-2 md:p-2.5 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+                  <FolderOpen className="size-5 md:size-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base line-clamp-2">{caseItem.name}</CardTitle>
+                  <CardTitle className="text-base md:text-lg font-semibold line-clamp-2 wrap-break-word">
+                    {caseItem.name}
+                  </CardTitle>
                 </div>
               </div>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <CardDescription className="mt-auto pt-4 cursor-default">
+                    <CardDescription className="mt-auto pt-4 text-xs md:text-sm cursor-default">
                       {formatRelativeTime(caseItem.updatedAt)}
                     </CardDescription>
                   </TooltipTrigger>
@@ -264,7 +326,7 @@ export function CasesGrid({ userId }: CasesGridProps) {
 
       {hasMore && cases.length >= 20 && (
         <div className="flex justify-center pt-2">
-          <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore}>
+          <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore} size="lg">
             <MoreHorizontal className="size-4 mr-2" />
             {loadingMore ? "Loading..." : "Load More Cases"}
           </Button>

@@ -129,9 +129,92 @@
   .cases-grid-cols {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
-  @media (min-width: 768px) {
+  @media (min-width: 640px) {
+    .cases-grid-cols {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .cases-grid-cols {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1280px) {
     .cases-grid-cols {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+  }
+}
+
+.docx-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: fit-content;
+  margin: 0 auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.docx-wrapper * {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.docx-wrapper section.docx {
+  background: white;
+  color: black;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 auto 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-height: auto;
+  padding: 0.5rem;
+  overflow-x: auto;
+}
+
+@media (min-width: 640px) {
+  .docx-wrapper {
+    gap: 0.75rem;
+  }
+
+  .docx-wrapper section.docx {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    max-width: 7in;
+  }
+}
+
+@media (min-width: 1024px) {
+  .docx-wrapper {
+    gap: 1rem;
+  }
+
+  .docx-wrapper section.docx {
+    padding: 1in;
+    margin-bottom: 1rem;
+    max-width: 8.5in;
+    width: 8.5in;
+    min-height: 11in;
+  }
+}
+
+.docx-wrapper article {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .docx-wrapper article {
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .docx-wrapper article {
+    gap: 1rem;
   }
 }

@@ -385,26 +385,30 @@ export function SourceDocumentUpload({ caseId, caseTypeId }: SourceDocumentUploa
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2">
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept={typeConfig.acceptedMimeTypes.join(",")}
-                          className="sr-only"
-                          disabled={isUploading}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFileSelect(typeConfig.sourceDocumentTypeId, typeConfig, file);
-                              e.target.value = "";
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={isUploading}
-                          className="pointer-events-none"
+                      <input
+                        type="file"
+                        accept={typeConfig.acceptedMimeTypes.join(",")}
+                        className="sr-only"
+                        disabled={isUploading}
+                        id={`file-input-${typeConfig.sourceDocumentTypeId}`}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleFileSelect(typeConfig.sourceDocumentTypeId, typeConfig, file);
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUploading}
+                        asChild
+                      >
+                        <label
+                          htmlFor={`file-input-${typeConfig.sourceDocumentTypeId}`}
+                          className="cursor-pointer"
                         >
                           {isUploading ? (
                             <>
@@ -422,8 +426,8 @@ export function SourceDocumentUpload({ caseId, caseTypeId }: SourceDocumentUploa
                               Upload
                             </>
                           )}
-                        </Button>
-                      </label>
+                        </label>
+                      </Button>
                       {uploaded && (
                         <Button
                           type="button"

@@ -11,7 +11,7 @@
     "start": "npm run start --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/web",
     "seed": "tsx seed/seed.ts",
-    "prepare": "husky"
+    "prepare": "if [ -n \"$VERCEL\" ] || [ -n \"$CI\" ]; then exit 0; fi && husky || true"
   },
   "devDependencies": {
     "dotenv": "^16.4.7",

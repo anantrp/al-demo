@@ -97,7 +97,7 @@ function FinishSignInContent() {
 
   if (verifying) {
     return (
-      <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+      <div className="bg-muted flex min-h-full flex-col items-center justify-center overflow-auto gap-6 p-6 md:p-10">
         <div className="w-full max-w-sm">
           <Card>
             <CardContent className="pt-6">
@@ -113,7 +113,7 @@ function FinishSignInContent() {
 
   if (invalidLink) {
     return (
-      <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+      <div className="bg-muted flex min-h-full flex-col items-center justify-center overflow-auto gap-6 p-6 md:p-10">
         <div className="w-full max-w-sm flex flex-col gap-6">
           <Link href="/" className="flex items-center gap-2 self-center font-medium">
             <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
@@ -142,7 +142,7 @@ function FinishSignInContent() {
   }
 
   return (
-    <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+    <div className="bg-muted flex min-h-full flex-col items-center justify-center overflow-auto gap-6 p-6 md:p-10">
       <div className="w-full max-w-sm flex flex-col gap-6">
         <Link href="/" className="flex items-center gap-2 self-center font-medium">
           <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
@@ -206,7 +206,7 @@ export default function FinishSignInPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+        <div className="bg-muted flex min-h-full flex-col items-center justify-center overflow-auto gap-6 p-6 md:p-10">
           <div className="w-full max-w-sm">
             <Card>
               <CardContent className="pt-6">

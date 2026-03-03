@@ -11,16 +11,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { NavActions } from "@/components/nav-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listenToCase, CaseData } from "@/lib/firestore/cases";
+import { subscribeToLatestCaseSourceDocuments } from "@/lib/firestore/source-documents";
+import { checkCaseReadiness } from "@/actions/case-readiness";
+import type { CaseReadinessResult } from "@/lib/types/case-readiness";
 import { EditableCaseName } from "@/components/cases/editable-case-name";
 import { SourceDocumentUpload } from "@/components/cases/source-document-upload";
-import { UserFieldsForm } from "@/components/cases/user-fields-form";
 import { DocumentOutputs } from "@/components/cases/document-outputs";
+import { CaseReadinessStatus } from "@/components/cases/case-readiness-status";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { GalleryVerticalEnd } from "lucide-react";
 
 export default function CasePage() {
   const params = useParams();
@@ -30,6 +33,8 @@ export default function CasePage() {
   const [caseData, setCaseData] = useState<CaseData | null>(null);
   const [loading, setLoading] = useState(!initialError);
   const [error, setError] = useState<string | null>(initialError);
+  const [readinessRefreshTrigger, setReadinessRefreshTrigger] = useState(0);
+  const [readiness, setReadiness] = useState<CaseReadinessResult | null>(null);
 
   useEffect(() => {
     if (!caseId) {
@@ -44,6 +49,7 @@ export default function CasePage() {
         } else {
           setCaseData(data);
           setError(null);
+          setReadinessRefreshTrigger((prev) => prev + 1);
         }
         setLoading(false);
       },
@@ -57,20 +63,65 @@ export default function CasePage() {
     return () => unsubscribe();
   }, [caseId]);
 
+  useEffect(() => {
+    if (!caseId) {
+      return;
+    }
+
+    const unsubscribe = subscribeToLatestCaseSourceDocuments(caseId, () => {
+      setReadinessRefreshTrigger((prev) => prev + 1);
+    });
+
+    return () => unsubscribe();
+  }, [caseId]);
+
+  useEffect(() => {
+    if (!caseId) {
+      return;
+    }
+
+    let mounted = true;
+
+    const fetchReadiness = async () => {
+      try {
+        const result = await checkCaseReadiness(caseId);
+        if (mounted) {
+          setReadiness(result);
+        }
+      } catch (err) {
+        console.error("Error checking case readiness:", err);
+      }
+    };
+
+    fetchReadiness();
+
+    return () => {
+      mounted = false;
+    };
+  }, [caseId, readinessRefreshTrigger]);
+
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+    <div className="fixed inset-0 flex flex-col">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:h-16 sm:px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <Breadcrumb>
             <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/" className="flex items-center gap-1.5">
+                    <span className="bg-primary text-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-md">
+                      <GalleryVerticalEnd className="size-4" />
+                    </span>
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink href="/">Cases</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>
+                <BreadcrumbPage className="max-w-[120px] truncate sm:max-w-none">
                   {loading ? (
                     <Skeleton className="h-4 w-32" />
                   ) : error ? (
@@ -83,59 +134,98 @@ export default function CasePage() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
+        <div className="ml-auto px-3">
+          <NavActions />
+        </div>
       </header>
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        {loading ? (
-          <div className="flex flex-col gap-4">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-            <div className="text-lg font-semibold text-red-600 dark:text-red-400">{error}</div>
-            <Link href="/" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-              Return to Cases
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <EditableCaseName caseId={caseId} initialName={caseData?.name || ""} />
-                <p className="text-sm text-muted-foreground">
-                  {caseData && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-default">
-                            {formatRelativeTime(caseData.updatedAt)}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{formatDateTime(caseData.updatedAt)}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </p>
+      <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4 md:p-6 pt-3 sm:pt-4 md:pt-6 overflow-auto md:overflow-visible">
+        <div className="mx-auto w-full max-w-7xl">
+          {loading ? (
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr] lg:gap-8 lg:items-start">
+                <div className="flex min-w-0 flex-col gap-6">
+                  <div className="flex flex-col gap-4">
+                    <Skeleton className="h-7 w-48" />
+                    <Skeleton className="h-4 w-28" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                      <Skeleton className="h-5 w-24 rounded-full" />
+                    </div>
+                    <Skeleton className="h-32 w-full rounded-lg" />
+                  </div>
+                </div>
+                <aside className="min-w-0 lg:sticky lg:top-6">
+                  <div className="flex flex-col rounded-xl border bg-card p-4 shadow-sm">
+                    <Skeleton className="mb-4 h-5 w-32" />
+                    <Skeleton className="mb-3 h-9 w-full rounded-md" />
+                    <div className="flex flex-col gap-2">
+                      <Skeleton className="h-10 w-full rounded-md" />
+                      <Skeleton className="h-10 w-full rounded-md" />
+                      <Skeleton className="h-10 w-full rounded-md" />
+                      <Skeleton className="h-10 w-[80%] rounded-md" />
+                    </div>
+                  </div>
+                </aside>
               </div>
-              {caseData && (
-                <UserFieldsForm
-                  caseId={caseId}
-                  caseTypeId={caseData.caseTypeId}
-                  initialValues={caseData.userFields}
-                />
-              )}
             </div>
-            {caseData && (
-              <div className="space-y-6">
-                <SourceDocumentUpload caseId={caseId} caseTypeId={caseData.caseTypeId} />
-                <DocumentOutputs caseId={caseId} caseTypeId={caseData.caseTypeId} />
+          ) : error ? (
+            <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
+              <div className="text-center text-lg font-semibold text-destructive">{error}</div>
+              <Link href="/" className="text-sm text-primary underline-offset-4 hover:underline">
+                Return to Cases
+              </Link>
+            </div>
+          ) : caseData ? (
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr] lg:gap-8 lg:items-start">
+                <div className="flex min-w-0 flex-col gap-6">
+                  <section className="w-full" aria-label="Case status and source documents">
+                    <CaseReadinessStatus
+                      readiness={readiness}
+                      loading={!readiness}
+                      caseId={caseId}
+                      caseTypeId={caseData.caseTypeId}
+                      initialUserValues={caseData.userFields}
+                      headerContent={
+                        <>
+                          <EditableCaseName caseId={caseId} initialName={caseData.name || ""} />
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-default">
+                                    {formatRelativeTime(caseData.updatedAt)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{formatDateTime(caseData.updatedAt)}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </p>
+                        </>
+                      }
+                    >
+                      <SourceDocumentUpload caseId={caseId} caseTypeId={caseData.caseTypeId} />
+                    </CaseReadinessStatus>
+                  </section>
+                </div>
+
+                <aside className="min-w-0 lg:sticky lg:top-6" aria-label="Templates">
+                  <div className="flex flex-col rounded-xl border bg-card shadow-sm">
+                    <DocumentOutputs
+                      caseId={caseId}
+                      caseTypeId={caseData.caseTypeId}
+                      readiness={readiness}
+                      variant="panel"
+                    />
+                  </div>
+                </aside>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          ) : null}
+        </div>
       </div>
-    </>
+    </div>
   );
 }

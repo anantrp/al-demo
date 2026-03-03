@@ -24,14 +24,19 @@ import {
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, CheckCircle2, User, X } from "lucide-react";
+import { Loader2, Save, CheckCircle2, Info, X } from "lucide-react";
 import { getCaseType, type FieldSchema } from "@/lib/firestore/case-types";
 import { updateCaseUserFields } from "@/actions/cases";
+import type { CaseReadinessResult } from "@/lib/types/case-readiness";
 
 interface UserFieldsFormProps {
   caseId: string;
   caseTypeId: string;
   initialValues?: Record<string, string | number | boolean>;
+  readiness?: CaseReadinessResult | null;
+  compact?: boolean;
+  triggerSize?: "default" | "sm" | "xs";
+  triggerClassName?: string;
 }
 
 function buildZodSchema(userFields: Record<string, FieldSchema>) {
@@ -72,7 +77,10 @@ function buildZodSchema(userFields: Record<string, FieldSchema>) {
       }
     }
 
-    if (!fieldConfig.required) {
+    const isRequired =
+      fieldConfig.required === true ||
+      (typeof fieldConfig.required === "string" && fieldConfig.required === "true");
+    if (!isRequired) {
       fieldSchema = fieldSchema.optional().or(z.literal(""));
     }
 
@@ -82,7 +90,15 @@ function buildZodSchema(userFields: Record<string, FieldSchema>) {
   return z.object(schemaFields);
 }
 
-export function UserFieldsForm({ caseId, caseTypeId, initialValues = {} }: UserFieldsFormProps) {
+export function UserFieldsForm({
+  caseId,
+  caseTypeId,
+  initialValues = {},
+  readiness,
+  compact,
+  triggerSize,
+  triggerClassName,
+}: UserFieldsFormProps) {
   const [userFields, setUserFields] = useState<Record<string, FieldSchema> | null>(null);
   const [userFormConfig, setUserFormConfig] = useState<{
     heading?: string;
@@ -172,18 +188,42 @@ export function UserFieldsForm({ caseId, caseTypeId, initialValues = {} }: UserF
   }
 
   const hasValues = initialValues && Object.keys(initialValues).length > 0;
+  const hasMissingRequiredFields = readiness ? !readiness.userFields : false;
   const fieldEntries = Object.entries(userFields).sort(([, a], [, b]) => {
     const orderA = a.order ?? 999;
     const orderB = b.order ?? 999;
     return orderA - orderB;
   });
 
+  const getButtonText = () => {
+    if (hasMissingRequiredFields) {
+      return "Complete Submission";
+    }
+    if (hasValues) {
+      return "Review & Edit";
+    }
+    return "Add Your Information";
+  };
+
+  const getButtonVariant = () => {
+    if (hasMissingRequiredFields) {
+      return "default";
+    }
+    return hasValues ? "outline" : "default";
+  };
+
+  const buttonSize = triggerSize ?? (compact ? "xs" : "default");
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={hasValues ? "outline" : "default"} className="w-full sm:w-auto">
-          <User className="size-4" />
-          {hasValues ? "Edit Your Information" : "Add Your Information"}
+        <Button
+          variant={getButtonVariant()}
+          size={buttonSize}
+          className={triggerClassName ?? "w-full sm:w-auto"}
+        >
+          <Info className={buttonSize === "xs" ? "size-3" : compact ? "size-3" : "size-4"} />
+          {getButtonText()}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -216,12 +256,19 @@ export function UserFieldsForm({ caseId, caseTypeId, initialValues = {} }: UserF
               const colSpanClass = cols === 2 ? "sm:col-span-2" : "";
               const hasOptions = fieldConfig.options && fieldConfig.options.length > 0;
               const fieldError = errors[fieldId as keyof typeof errors];
+              const isRequired =
+                fieldConfig.required === true ||
+                (typeof fieldConfig.required === "string" && fieldConfig.required === "true");
 
               return (
                 <Field key={fieldId} className={colSpanClass}>
                   <FieldLabel htmlFor={fieldId}>
                     {fieldConfig.label}
-                    {fieldConfig.required && <span className="text-destructive ml-1">*</span>}
+                    {isRequired && (
+                      <span className="text-destructive ml-1" aria-hidden="true">
+                        *
+                      </span>
+                    )}
                   </FieldLabel>
                   {hasOptions ? (
                     <Controller
@@ -229,7 +276,12 @@ export function UserFieldsForm({ caseId, caseTypeId, initialValues = {} }: UserF
                       control={control}
                       render={({ field }) => (
                         <Select value={field.value as string} onValueChange={field.onChange}>
-                          <SelectTrigger id={fieldId} className="w-full">
+                          <SelectTrigger
+                            id={fieldId}
+                            className="w-full"
+                            required={isRequired}
+                            aria-required={isRequired}
+                          >
                             <SelectValue
                               placeholder={
                                 fieldConfig.placeholder ||
@@ -261,6 +313,8 @@ export function UserFieldsForm({ caseId, caseTypeId, initialValues = {} }: UserF
                       }
                       {...register(fieldId)}
                       placeholder={fieldConfig.placeholder || ""}
+                      required={isRequired}
+                      aria-required={isRequired}
                     />
                   )}
                   {fieldError && <FieldError>{fieldError?.message as string}</FieldError>}

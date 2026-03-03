@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, storage } from "@/lib/firebase";
+import { ref, getBlob } from "firebase/storage";
 import {
   getSourceDocumentsForCaseType,
   type SourceDocumentType,
   type CaseSourceDocument,
 } from "@/lib/firestore/source-documents";
 import { getUploadUrl, finalizeUpload } from "@/actions/uploads";
+import { ExtractionDataDialog } from "@/components/cases/extraction-data-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Upload,
   FileText,
+  FileImage,
   Loader2,
-  CheckCircle2,
   AlertCircle,
   CircleCheck,
   CircleX,
@@ -25,6 +27,57 @@ import {
 } from "lucide-react";
 
 const PROCESSING_TIMEOUT_MS = 10 * 60 * 1000;
+
+const IMAGE_MIME_PREFIX = "image/";
+
+function isImageMime(mimeType: string | null): boolean {
+  return !!mimeType && mimeType.startsWith(IMAGE_MIME_PREFIX);
+}
+
+const placeholderIconClasses =
+  "size-16 text-muted-foreground/50 rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 p-4";
+
+function StorageThumbnail({ storagePath }: { storagePath: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const storageRef = ref(storage, storagePath);
+    getBlob(storageRef)
+      .then((blob) => {
+        if (cancelled) return;
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = URL.createObjectURL(blob);
+        setUrl(objectUrlRef.current);
+      })
+      .catch(() => {
+        if (!cancelled) setUrl(null);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, [storagePath]);
+
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-full max-h-full w-full max-w-full object-contain object-right"
+      />
+    );
+  }
+  return (
+    <div className={placeholderIconClasses}>
+      <FileImage className="size-full" />
+    </div>
+  );
+}
 
 interface SourceDocumentUploadProps {
   caseId: string;
@@ -141,6 +194,7 @@ export function SourceDocumentUpload({ caseId, caseTypeId }: SourceDocumentUploa
   const [loading, setLoading] = useState(true);
   const [uploadingTypeId, setUploadingTypeId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDataForTypeId, setShowDataForTypeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!caseTypeId) {
@@ -294,84 +348,136 @@ export function SourceDocumentUpload({ caseId, caseTypeId }: SourceDocumentUploa
           {error}
         </div>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         {sourceDocTypes.map((typeConfig) => {
           const uploaded = uploadedDocs.find(
             (d) => d.sourceDocumentTypeId === typeConfig.sourceDocumentTypeId
           );
           const isUploading = uploadingTypeId === typeConfig.sourceDocumentTypeId;
+          const showPreview = !!uploaded;
+
           return (
             <Card key={typeConfig.sourceDocumentTypeId}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileText className="size-4" />
-                  {typeConfig.name}
-                </CardTitle>
-                <CardDescription>{typeConfig.description}</CardDescription>
-                <p className="text-xs text-muted-foreground">
-                  Accepted: {typeConfig.acceptedMimeTypes.join(", ")} • Max{" "}
-                  {typeConfig.maxFileSizeMB}MB
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {uploaded ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500">
-                      <CheckCircle2 className="size-4 shrink-0" />
-                      <span className="truncate">{uploaded.fileName}</span>
+              <div
+                className={`flex flex-col md:flex-row ${showPreview ? "md:min-h-40 md:max-h-40" : ""}`}
+              >
+                <div className="min-w-0 flex-[1_1_60%] md:max-w-[60%]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileText className="size-4" />
+                      {typeConfig.name}
+                    </CardTitle>
+                    <CardDescription>{typeConfig.description}</CardDescription>
+                    <p className="text-xs text-muted-foreground">
+                      Accepted: {typeConfig.acceptedMimeTypes.join(", ")} • Max{" "}
+                      {typeConfig.maxFileSizeMB}MB
+                    </p>
+                  </CardHeader>
+                  <CardContent className="mt-3 space-y-3">
+                    {uploaded ? (
+                      <div className="mt-2 space-y-2">
+                        <ExtractionStatusBadge uploaded={uploaded} />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
+                        <AlertCircle className="size-4 shrink-0" />
+                        <span>Upload this document to proceed</span>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept={typeConfig.acceptedMimeTypes.join(",")}
+                          className="sr-only"
+                          disabled={isUploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileSelect(typeConfig.sourceDocumentTypeId, typeConfig, file);
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isUploading}
+                          className="pointer-events-none"
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="size-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : uploaded ? (
+                            <>
+                              <Upload className="size-4" />
+                              Replace
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="size-4" />
+                              Upload
+                            </>
+                          )}
+                        </Button>
+                      </label>
+                      {uploaded && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDataForTypeId(typeConfig.sourceDocumentTypeId)}
+                        >
+                          Show data
+                        </Button>
+                      )}
                     </div>
-                    <ExtractionStatusBadge uploaded={uploaded} />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
-                    <AlertCircle className="size-4 shrink-0" />
-                    <span>Upload this document to proceed</span>
+                  </CardContent>
+                </div>
+                {showPreview && (
+                  <div className="hidden shrink-0 md:flex md:w-[40%] md:max-w-[40%] md:min-h-0 md:flex-col md:pr-6">
+                    <div className="flex min-h-0 flex-1 items-center justify-end">
+                      {isImageMime(uploaded.mimeType) ? (
+                        uploaded.storagePath ? (
+                          <StorageThumbnail
+                            key={uploaded.storagePath}
+                            storagePath={uploaded.storagePath}
+                          />
+                        ) : (
+                          <div className={placeholderIconClasses}>
+                            <FileImage className="size-full" />
+                          </div>
+                        )
+                      ) : (
+                        <div className={placeholderIconClasses}>
+                          <FileText className="size-full" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-                <label className="block cursor-pointer">
-                  <input
-                    type="file"
-                    accept={typeConfig.acceptedMimeTypes.join(",")}
-                    className="sr-only"
-                    disabled={isUploading}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleFileSelect(typeConfig.sourceDocumentTypeId, typeConfig, file);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading}
-                    className="w-full pointer-events-none"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : uploaded ? (
-                      <>
-                        <Upload className="size-4" />
-                        Replace
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="size-4" />
-                        Upload
-                      </>
-                    )}
-                  </Button>
-                </label>
-              </CardContent>
+              </div>
             </Card>
           );
         })}
       </div>
+      {(() => {
+        const typeConfig = sourceDocTypes.find((t) => t.sourceDocumentTypeId === showDataForTypeId);
+        const uploaded = uploadedDocs.find((d) => d.sourceDocumentTypeId === showDataForTypeId);
+        return (
+          <ExtractionDataDialog
+            open={!!showDataForTypeId}
+            onOpenChange={(open) => !open && setShowDataForTypeId(null)}
+            extractionId={uploaded?.latestExtractionId ?? null}
+            caseTypeId={caseTypeId}
+            extractsFields={typeConfig?.extractsFields ?? []}
+            documentName={typeConfig?.name ?? ""}
+          />
+        );
+      })()}
     </div>
   );
 }

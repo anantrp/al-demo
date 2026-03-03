@@ -1,22 +1,14 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { UserProvider } from "@/lib/user-context";
 import { Toaster } from "@/components/ui/toaster";
-
-type UserData = {
-  uid: string;
-  email: string | null;
-  name: string | null;
-  picture: string | null;
-};
+import type { UserData } from "@/lib/user-context";
 
 export function AppLayoutClient({ user, children }: { user: UserData; children: React.ReactNode }) {
   return (
-    <SidebarProvider defaultOpen={false}>
-      <AppSidebar user={user} />
-      <SidebarInset>{children}</SidebarInset>
+    <UserProvider user={user}>
+      {children}
       <Toaster />
-    </SidebarProvider>
+    </UserProvider>
   );
 }

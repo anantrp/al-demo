@@ -14,6 +14,7 @@ export interface SourceDocumentType {
   description: string;
   acceptedMimeTypes: string[];
   maxFileSizeMB: number;
+  extractsFields: string[];
 }
 
 interface SourceDocumentTypeDoc {
@@ -22,6 +23,7 @@ interface SourceDocumentTypeDoc {
   description: string;
   acceptedMimeTypes: string[];
   maxFileSizeMB: number;
+  extractsFields: string[];
   isActive: boolean;
   deletedAt: unknown;
 }
@@ -37,6 +39,7 @@ function mapSourceDocumentType(doc: QueryDocumentSnapshot): SourceDocumentType |
     description: data.description,
     acceptedMimeTypes: data.acceptedMimeTypes ?? [],
     maxFileSizeMB: data.maxFileSizeMB ?? 10,
+    extractsFields: data.extractsFields ?? [],
   };
 }
 
@@ -54,6 +57,8 @@ export interface CaseSourceDocument {
   docId: string;
   sourceDocumentTypeId: string;
   fileName: string;
+  storagePath: string | null;
+  mimeType: string | null;
   isLatest: boolean;
   latestExtractionId: string | null;
   status: string | null;
@@ -71,6 +76,8 @@ export async function getLatestCaseSourceDocuments(caseId: string): Promise<Case
       docId: data.docId,
       sourceDocumentTypeId: data.sourceDocumentTypeId,
       fileName: data.fileName,
+      storagePath: data.storagePath ?? null,
+      mimeType: data.mimeType ?? null,
       isLatest: data.isLatest,
       latestExtractionId: data.latestExtractionId ?? null,
       status: data.status ?? null,
@@ -94,6 +101,8 @@ export function subscribeToLatestCaseSourceDocuments(
         docId: data.docId,
         sourceDocumentTypeId: data.sourceDocumentTypeId,
         fileName: data.fileName,
+        storagePath: data.storagePath ?? null,
+        mimeType: data.mimeType ?? null,
         isLatest: data.isLatest,
         latestExtractionId: data.latestExtractionId ?? null,
         status: data.status ?? null,

@@ -115,13 +115,14 @@ export function EditableCaseName({ caseId, initialName }: EditableCaseNameProps)
   }
 
   return (
-    <div className="flex items-center gap-2 group">
-      <h1 className="text-2xl font-bold">{name}</h1>
+    <div className="flex items-center gap-2 group min-w-0">
+      <h1 className="text-xl font-bold truncate sm:text-2xl">{name}</h1>
       <Button
         size="icon"
         variant="ghost"
         onClick={() => setIsEditing(true)}
-        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-8 w-8 shrink-0 opacity-100"
+        aria-label="Edit case name"
       >
         <Pencil className="h-4 w-4" />
       </Button>

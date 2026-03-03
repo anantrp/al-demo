@@ -120,12 +120,32 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
   body {
     @apply bg-background text-foreground;
   }
 }
 
 @layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 9999px;
+  }
+
   .cases-grid-cols {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
@@ -144,6 +164,9 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
+}
+
+.docx-wrapper-container {
 }
 
 .docx-wrapper {

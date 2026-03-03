@@ -2,7 +2,7 @@ from fastapi import BackgroundTasks
 from google.cloud.firestore_v1 import SERVER_TIMESTAMP
 from google.cloud.firestore_v1 import Client as FirestoreClient
 
-from app.services.extraction_service import run_extraction
+from app.services.task_dispatcher import get_task_dispatcher
 
 
 def enqueue_extraction(
@@ -47,5 +47,6 @@ def enqueue_extraction(
         }
     )
 
-    background_tasks.add_task(run_extraction, extraction_id)
+    dispatcher = get_task_dispatcher(background_tasks)
+    dispatcher.dispatch_extraction(extraction_id)
     return {"extraction_id": extraction_id}

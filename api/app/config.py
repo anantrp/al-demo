@@ -26,6 +26,13 @@ class Settings:
 
     GCP_PROJECT_ID: str = os.getenv("GOOGLE_CLOUD_PROJECT", "")
 
+    CLOUD_TASKS_LOCATION: str = os.getenv("CLOUD_TASKS_LOCATION", "europe-west1")
+    CLOUD_RUN_SERVICE_URL: str = os.getenv("CLOUD_RUN_SERVICE_URL", "")
+    CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL: str = os.getenv("CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL", "")
+    CLOUD_TASKS_EXTRACTION_QUEUE: str = os.getenv(
+        "CLOUD_TASKS_EXTRACTION_QUEUE", "extraction-queue"
+    )
+
     def __init__(self):
         self._validate()
 
@@ -51,6 +58,23 @@ class Settings:
             raise ValueError(
                 "LANGSMITH_API_KEY is required. Set it in .env or environment variables."
             )
+
+        if self.is_cloud:
+            if not self.API_KEY:
+                raise ValueError(
+                    "API_KEY is required when running in cloud environment. "
+                    "Set it in Cloud Run environment variables."
+                )
+            if not self.CLOUD_RUN_SERVICE_URL:
+                raise ValueError(
+                    "CLOUD_RUN_SERVICE_URL is required when running in cloud environment. "
+                    "Set it in Cloud Run environment variables."
+                )
+            if not self.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL:
+                raise ValueError(
+                    "CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL is required when running in cloud environment. "
+                    "Set it in Cloud Run environment variables."
+                )
 
     @property
     def is_local(self) -> bool:

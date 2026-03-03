@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.133.0",
     "firebase-admin>=7.1.0",
     "google-cloud-storage>=3.9.0",
+    "google-cloud-tasks>=2.18.0",
     "jsonschema>=4.26.0",
     "langchain-core>=1.2.16",
     "langchain-openai>=1.1.10",

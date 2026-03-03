@@ -83,7 +83,7 @@
   "userFields": {
     "full_name": {
       "label": "Full Name",
-      "required": false,
+      "required": true,
       "order": 1,
       "cols": 2,
       "placeholder": "Enter your full name",
@@ -94,7 +94,7 @@
     },
     "address_line_1": {
       "label": "Address Line 1",
-      "required": false,
+      "required": true,
       "order": 2,
       "cols": 2,
       "placeholder": "Street address",
@@ -114,7 +114,7 @@
     },
     "city": {
       "label": "City",
-      "required": false,
+      "required": true,
       "order": 4,
       "cols": 1,
       "placeholder": "City",
@@ -124,7 +124,7 @@
     },
     "state": {
       "label": "State",
-      "required": false,
+      "required": true,
       "order": 5,
       "cols": 1,
       "placeholder": "Select state",
@@ -186,7 +186,7 @@
     },
     "zip_code": {
       "label": "Zip Code",
-      "required": false,
+      "required": true,
       "order": 6,
       "cols": 1,
       "placeholder": "12345",
@@ -197,7 +197,7 @@
     },
     "email_address": {
       "label": "Email Address",
-      "required": false,
+      "required": true,
       "order": 7,
       "cols": 1,
       "placeholder": "you@example.com",
@@ -219,9 +219,9 @@
     },
     "relationship": {
       "label": "Relationship to Deceased",
-      "required": false,
+      "required": true,
       "order": 9,
-      "cols": 2,
+      "cols": 1,
       "placeholder": "e.g., Spouse, Son, Daughter, Executor",
       "schema": {
         "type": "string"

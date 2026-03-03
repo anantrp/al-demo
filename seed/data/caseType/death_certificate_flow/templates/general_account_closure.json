@@ -1,8 +1,8 @@
 {
-  "templateId": "social_security",
-  "name": "Social Security Administration - Report of Death",
-  "description": "Official notification to SSA of deceased individual",
-  "documentDownloadName": "Social_Security_Report.docx",
+  "templateId": "general_account_closure",
+  "name": "General Financial Institution - Account Closure Request",
+  "description": "Generic notification template to close accounts with financial institutions not otherwise categorized.",
+  "documentDownloadName": "General_Account_Closure_Request.docx",
   "referenceFields": [
     "deceased_name",
     "ssn",
@@ -23,7 +23,7 @@
     "phone_number",
     "relationship"
   ],
-  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Report_Template.docx",
+  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Death_Notification_Template.docx",
   "version": "1.0.0",
   "isActive": true,
   "deletedAt": null

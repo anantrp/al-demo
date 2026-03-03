@@ -1,8 +1,8 @@
 {
-  "templateId": "social_security",
-  "name": "Social Security Administration - Report of Death",
-  "description": "Official notification to SSA of deceased individual",
-  "documentDownloadName": "Social_Security_Report.docx",
+  "templateId": "irs_final_tax_notification",
+  "name": "Internal Revenue Service - Final Tax Notification",
+  "description": "Formal notice to the IRS regarding the individual's death for final tax filing purposes.",
+  "documentDownloadName": "IRS_Final_Tax_Notification.docx",
   "referenceFields": [
     "deceased_name",
     "ssn",
@@ -23,7 +23,7 @@
     "phone_number",
     "relationship"
   ],
-  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Report_Template.docx",
+  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Death_Notification_Template.docx",
   "version": "1.0.0",
   "isActive": true,
   "deletedAt": null

@@ -1,8 +1,8 @@
 {
-  "templateId": "social_security",
-  "name": "Social Security Administration - Report of Death",
-  "description": "Official notification to SSA of deceased individual",
-  "documentDownloadName": "Social_Security_Report.docx",
+  "templateId": "credit_bureau_notification",
+  "name": "Credit Reporting Agencies - Deceased Alert Notification",
+  "description": "Notification to credit bureaus to mark the individual as deceased and prevent identity theft.",
+  "documentDownloadName": "Credit_Bureau_Deceased_Notification.docx",
   "referenceFields": [
     "deceased_name",
     "ssn",
@@ -23,7 +23,7 @@
     "phone_number",
     "relationship"
   ],
-  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Report_Template.docx",
+  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Death_Notification_Template.docx",
   "version": "1.0.0",
   "isActive": true,
   "deletedAt": null

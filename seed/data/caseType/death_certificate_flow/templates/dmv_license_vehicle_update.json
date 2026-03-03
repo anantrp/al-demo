@@ -1,8 +1,8 @@
 {
-  "templateId": "social_security",
-  "name": "Social Security Administration - Report of Death",
-  "description": "Official notification to SSA of deceased individual",
-  "documentDownloadName": "Social_Security_Report.docx",
+  "templateId": "dmv_license_vehicle_update",
+  "name": "Department of Motor Vehicles - License & Vehicle Update",
+  "description": "Request to cancel driver's license and update or transfer vehicle registration.",
+  "documentDownloadName": "DMV_License_Vehicle_Update.docx",
   "referenceFields": [
     "deceased_name",
     "ssn",
@@ -23,7 +23,7 @@
     "phone_number",
     "relationship"
   ],
-  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Report_Template.docx",
+  "storagePath": "templates/death_certificate_flow/social_security/Social_Security_Death_Notification_Template.docx",
   "version": "1.0.0",
   "isActive": true,
   "deletedAt": null

@@ -256,7 +256,7 @@ export function CasesHomeContent({ userId }: CasesHomeContentProps) {
   }
 
   return (
-    <div className="grid gap-6 p-4 bg-accent rounded-xl sm:gap-6 sm:p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] lg:gap-8 lg:p-16 mt-20">
+    <div className="grid gap-6 p-4 bg-accent rounded-xl sm:gap-6 sm:p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] lg:gap-8 lg:p-16">
       <div className="space-y-5 bg-background rounded-xl p-4 sm:space-y-6 sm:p-6 lg:p-8">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl leading-relaxed">

@@ -240,7 +240,7 @@ export function DocumentOutputs({
 
   const templateList = isPanel ? (
     <TooltipProvider>
-      <ItemGroup>
+      <ItemGroup className="space-y-2">
         {filteredTemplates.map((template) => {
           const isDownloading = downloadingTemplateId === template.templateId;
           const isPreviewing = previewingTemplateId === template.templateId;
@@ -399,7 +399,7 @@ export function DocumentOutputs({
           )}
           <div
             className="px-4 pb-4 overflow-y-auto scrollbar-thin"
-            style={{ maxHeight: "calc(100dvh - 10rem)" }}
+            style={{ maxHeight: "calc(100dvh - 12rem)" }}
           >
             {filteredTemplates.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">

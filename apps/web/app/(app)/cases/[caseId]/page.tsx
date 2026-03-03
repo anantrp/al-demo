@@ -18,6 +18,7 @@ import { listenToCase, CaseData } from "@/lib/firestore/cases";
 import { EditableCaseName } from "@/components/cases/editable-case-name";
 import { SourceDocumentUpload } from "@/components/cases/source-document-upload";
 import { UserFieldsForm } from "@/components/cases/user-fields-form";
+import { DocumentOutputs } from "@/components/cases/document-outputs";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -129,6 +130,7 @@ export default function CasePage() {
             {caseData && (
               <div className="space-y-6">
                 <SourceDocumentUpload caseId={caseId} caseTypeId={caseData.caseTypeId} />
+                <DocumentOutputs caseId={caseId} caseTypeId={caseData.caseTypeId} />
               </div>
             )}
           </div>

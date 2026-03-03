@@ -31,7 +31,7 @@ async def post_enqueue_extraction(
     if not case_id or not source_document_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="caseId and sourceDocumentId are required",
+            detail="Missing required information",
         )
 
     db = get_db()
@@ -48,7 +48,7 @@ async def post_enqueue_extraction(
     if case_data.get("userId") != user.get("uid"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this case",
+            detail="You don't have permission to access this case",
         )
 
     result = enqueue_extraction(

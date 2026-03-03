@@ -37,7 +37,7 @@ export async function getUploadUrl(
   try {
     const user = await verifySession();
     if (!user) {
-      return { success: false, error: "Authentication required" };
+      return { success: false, error: "Please sign in to continue" };
     }
 
     const caseRef = adminDb.collection("cases").doc(caseId);
@@ -47,12 +47,12 @@ export async function getUploadUrl(
     }
     const caseData = caseDoc.data();
     if (caseData?.userId !== user.uid) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "You don't have permission to access this case" };
     }
 
     const caseTypeId = caseData?.caseTypeId as string;
     if (!caseTypeId) {
-      return { success: false, error: "Invalid case" };
+      return { success: false, error: "This case is missing required information" };
     }
 
     const sourceDocRef = adminDb
@@ -62,7 +62,7 @@ export async function getUploadUrl(
       .doc(sourceDocumentTypeId);
     const sourceDoc = await sourceDocRef.get();
     if (!sourceDoc.exists) {
-      return { success: false, error: "Source document type not found" };
+      return { success: false, error: "Document type not found" };
     }
     const sourceDocData = sourceDoc.data();
     const acceptedMimeTypes = (sourceDocData?.acceptedMimeTypes ?? []) as string[];
@@ -90,7 +90,7 @@ export async function getUploadUrl(
     if (!bucketName) {
       return {
         success: false,
-        error: "Storage is not configured (FIREBASE_STORAGE_BUCKET)",
+        error: "Storage configuration error. Please contact support",
       };
     }
     const bucket = adminStorage.bucket(bucketName);
@@ -112,7 +112,7 @@ export async function getUploadUrl(
     console.error("Error getting upload URL:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to get upload URL",
+      error: "Failed to prepare upload. Please try again",
     };
   }
 }
@@ -135,7 +135,7 @@ export async function finalizeUpload(
   try {
     const user = await verifySession();
     if (!user) {
-      return { success: false, error: "Authentication required" };
+      return { success: false, error: "Please sign in to continue" };
     }
 
     const caseRef = adminDb.collection("cases").doc(caseId);
@@ -145,14 +145,14 @@ export async function finalizeUpload(
     }
     const caseData = caseDoc.data();
     if (caseData?.userId !== user.uid) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "You don't have permission to access this case" };
     }
 
     const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
     if (!bucketName) {
       return {
         success: false,
-        error: "Storage is not configured (FIREBASE_STORAGE_BUCKET)",
+        error: "Storage configuration error. Please contact support",
       };
     }
     const bucket = adminStorage.bucket(bucketName);
@@ -161,7 +161,7 @@ export async function finalizeUpload(
     if (!exists) {
       return {
         success: false,
-        error: "Something went wrong, please upload again.",
+        error: "Upload incomplete. Please try again",
       };
     }
 
@@ -202,8 +202,7 @@ export async function finalizeUpload(
     console.error("Error finalizing upload:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to finalize upload. Please try again.",
+      error: error instanceof Error ? error.message : "Failed to complete upload. Please try again",
     };
   }
 }

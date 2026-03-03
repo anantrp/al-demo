@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "docxtpl>=0.18.0",
     "fastapi>=0.133.0",
     "firebase-admin>=7.1.0",
     "google-cloud-storage>=3.9.0",

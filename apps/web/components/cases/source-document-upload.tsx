@@ -237,7 +237,7 @@ export function SourceDocumentUpload({ caseId, caseTypeId }: SourceDocumentUploa
 
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        setError("Session expired. Please sign in again.");
+        setError("Please sign in to continue");
         return;
       }
 
@@ -257,7 +257,7 @@ export function SourceDocumentUpload({ caseId, caseTypeId }: SourceDocumentUploa
         setError(finalizeResult.error ?? "Failed to finalize upload");
       }
     } catch {
-      setError("Failed to upload image, please try again later.");
+      setError("Failed to upload document. Please try again");
     } finally {
       setUploadingTypeId(null);
     }

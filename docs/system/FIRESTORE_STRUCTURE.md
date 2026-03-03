@@ -298,6 +298,7 @@ All documents store their ID in the body for clean serialization.
   "templateId": "social_security",
   "name": "Social Security Administration - Report of Death",
   "description": "Official notification to SSA of deceased individual",
+  "documentDownloadName": "Social_Security_Report.docx",
   "referenceFields": [
     "deceased_name",
     "ssn",
@@ -331,6 +332,7 @@ All documents store their ID in the body for clean serialization.
 
 - `referenceFields`: References extracted fields from source documents
 - `referenceUserFields`: References user-provided fields from case.userFields
+- `documentDownloadName`: The filename used when users download the generated document (e.g., "Social_Security_Report.docx")
 
 ---
 
@@ -465,6 +467,8 @@ All documents store their ID in the body for clean serialization.
 
 ### generations/{generationId}
 
+**Audit-only collection** - Documents are generated and streamed directly to users on download. This collection tracks generation events for analytics and debugging purposes only.
+
 ```json
 {
   "generationId": "gen_abc123xyz",
@@ -473,33 +477,29 @@ All documents store their ID in the body for clean serialization.
   "caseTypeId": "death_certificate_flow",
   "templateId": "social_security",
   "templateName": "Social Security Administration - Report of Death",
-  "extractionId": "ext_abc123xyz",
-  "extractionVersion": 1,
-  "extractedFields": {
-    "deceased_name": "John Doe",
-    "ssn": "123-45-6789",
-    "date_of_death": "2024-01-15",
-    "date_of_birth": "1950-03-22",
-    "place_of_death": "San Francisco, CA",
-    "certificate_number": "2024-SF-00123",
-    "issuing_authority": "San Francisco County Health Department"
-  },
   "status": "completed",
-  "outputPath": "cases/case_abc123xyz/outputs/gen_abc123xyz.pdf",
-  "outputFileName": "Social_Security_Report.pdf",
+  "outputFileName": "Social_Security_Report.docx",
   "errorMessage": null,
   "durationMs": 8750,
   "generatedAt": "timestamp",
-  "createdAt": "timestamp"
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
 }
 ```
 
 **Status values:**
 
-- `pending` - Queued
-- `generating` - In progress
-- `completed` - PDF ready
-- `failed` - Generation error
+- `completed` - Document was successfully generated and downloaded
+- `failed` - Generation error occurred
+
+**Fields:**
+
+- `outputFileName` - Filename used for the downloaded document
+- `durationMs` - Time taken to generate the document in milliseconds
+- `errorMessage` - Error message if status is "failed", null otherwise
+- `generatedAt` - Timestamp when document was successfully generated (only set if completed)
+
+**Note:** Documents are not stored in Firebase Storage. Each download generates the document fresh using the latest case data.
 
 ---
 
@@ -530,12 +530,8 @@ All documents store their ID in the body for clean serialization.
 **Case → Generations**
 
 - One case has many generations (top-level collection)
-- Each generation snapshots extracted fields used
-
-**Extraction → Generation**
-
-- One extraction can be used by many generations
-- Generation stores extractionId + snapshot of fields
+- Each generation is an audit record of a document download event
+- Documents use latest extraction data at download time
 
 ---
 
@@ -619,8 +615,15 @@ sourceDocuments.where("caseId", "==", caseId).orderBy("uploadedAt", "desc");
 // My extractions for a case
 extractions.where("caseId", "==", caseId).orderBy("version", "desc");
 
-// My generations for a case
+// My generations for a case (audit log)
 generations.where("caseId", "==", caseId).orderBy("createdAt", "desc");
+
+// Recent downloads for case+template (audit log)
+generations
+  .where("caseId", "==", caseId)
+  .where("templateId", "==", templateId)
+  .orderBy("createdAt", "desc")
+  .limit(10);
 
 // Latest extraction for case
 extractions.where("caseId", "==", caseId).orderBy("version", "desc").limit(1);
@@ -662,7 +665,6 @@ extractions.where("extractionConfig.model", "==", "gpt-4o");
 - `latestExtractionId` in sourceDocuments
 - `status` and `validityReason` in sourceDocuments (mirrored from extractions)
 - `templateName` in generations
-- `extractedFields` snapshot in generations
 
 **Trade-off:**
 

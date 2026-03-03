@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes import users
 from app.routes.enqueue import router as enqueue_router
+from app.routes.documents import router as documents_router
 from app.services.firebase import get_db, init_firebase
 
 
@@ -19,6 +20,7 @@ app = FastAPI(title="API Server", lifespan=lifespan)
 
 app.include_router(users.router)
 app.include_router(enqueue_router)
+app.include_router(documents_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +28,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 

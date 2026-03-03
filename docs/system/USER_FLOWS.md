@@ -145,111 +145,63 @@ FastAPI Worker:
 
 ---
 
-## 4. Generate Output Document
+## 4. Download Output Document
 
-**User Action:** Click "Generate" button on template card
+**User Action:** Click "Download" button on template card
 
 **System Flow:**
 
 ```
-Next.js Server Action: generateDocument(caseId, templateId)
+Client: User clicks "Download Social Security Form"
   ↓
-Verify:
-  - User owns case
-  - Latest extraction status is "extracted"
-  - Template exists, is active, and not deleted
+Get Firebase ID Token
   ↓
-FastAPI Call: POST /enqueue/generation
-  - payload: { caseId, templateId, extractionId }
+FastAPI Call: POST /documents/{caseId}/{templateId}/download
+  - Headers: Authorization: Bearer {idToken}
   ↓
-FastAPI /enqueue/generation:
-  1. Load extraction, template
-  2. Snapshot extracted fields template needs
-  3. Create generation document:
-     - generationId: "gen_{auto_id}"
-     - status: "pending"
-     - extractedFields: { deceased_name: "...", ... }
-  4. Enqueue Cloud Task to /worker/generation
-  5. Return { generationId }
+FastAPI /documents/{caseId}/{templateId}/download:
+  1. Verify Firebase ID token
+  2. Verify user owns case (userId match)
+  3. Load template config:
+     - Check template exists and is active
+  4. Verify latest extraction exists and is processed
+  5. Aggregate fields from latest extractions
+  6. Get userFields from case document
+  7. Prepare template context:
+     - fields: { deceased_name: "...", ssn: "...", ... }
+     - userFields: { full_name: "...", email: "...", ... }
+     - system: { date: "December 15, 2024" }
+  8. Download template .docx from Storage
+  9. Render document using python-docxtpl:
+     - Replace {{ fields.deceased_name }} etc with values
+  10. Create generation audit record (Firestore):
+      - generationId: "gen_{auto_id}"
+      - status: "completed"
+      - templateId, templateName
+      - outputFileName, durationMs
+      - createdAt, generatedAt
+  11. Stream .docx file to client:
+      - Content-Type: application/vnd.openxmlformats-...
+      - Content-Disposition: attachment; filename="..."
   ↓
-Server Action returns
-  ↓
-Client onSnapshot: Generation doc appears
-  - Status: "pending"
-  - Template name shown
-  - "Generating..." indicator
-```
-
-**Why:** User initiates generation explicitly (control when PDFs are created). Snapshot prevents re-extraction from breaking existing documents. onSnapshot shows progress.
-
----
-
-## 5. Generate PDF
-
-**System Flow (Async Worker):**
-
-```
-Cloud Tasks → POST /worker/generation
-  - Auth: API key verification
-  - Payload: { generationId }
-  ↓
-FastAPI Worker:
-  1. Load generation doc (has snapshotted fields)
-  2. Update generation (status: "generating")
-     ↓ onSnapshot fires → UI shows "Generating PDF..."
-
-  3. Download template .docx from Storage
-  4. Render template:
-     - Replace {{ deceased_name }} etc with values
-     - python-docxtpl (Jinja2 in .docx)
-
-  5. Convert .docx → PDF (LibreOffice headless)
-
-  6. Upload PDF to Storage:
-     - Path: "cases/{caseId}/outputs/{generationId}.pdf"
-
-  7. Update generation:
-     - status: "completed"
-     - outputPath, outputFileName
-     - generatedAt, durationMs
-     ↓ onSnapshot fires → Download link appears
+Client: Browser downloads file
+  - Shows "Downloading..." during request
+  - Browser triggers download with correct filename
 ```
 
 **User View:**
 
-- Status: "Generating PDF..." → "Ready to download"
-- Download button enabled
-- Template name + timestamp shown
+- Click "Download" → Shows spinner
+- Document generates in 1-3 seconds
+- Browser downloads file automatically
+- Can download again anytime (generates fresh with latest data)
 
-**Why:** Template rendering isolated in worker. PDF stored with generationId (multiple generations = multiple PDFs preserved).
-
----
-
-## 6. Download Generated PDF
-
-**User Action:** Click download button
-
-**System Flow:**
-
-```
-Next.js Server Action: getDownloadUrl(generationId)
-  ↓
-Verify:
-  - User owns generation (userId match)
-  - Generation status is "completed"
-  ↓
-Generate signed URL:
-  - Storage path from generation.outputPath
-  - 5 min expiry
-  ↓
-Return { downloadUrl, fileName }
-  ↓
-Client: window.open(downloadUrl)
-  - Direct download from Firebase Storage
-  - Browser handles download
-```
-
-**Why:** Signed URL bypasses Storage rules securely. Short expiry prevents link sharing. Direct download (no proxy through server).
+**Why:** 
+- Always uses latest case data (no stale documents)
+- Fast for small .docx files (1-3 seconds)
+- No Storage costs for outputs
+- Simpler architecture (no async workers, no status tracking)
+- Audit trail preserved in generations collection
 
 ---
 
@@ -258,7 +210,6 @@ Client: window.open(downloadUrl)
 **Client onSnapshot listeners:**
 
 - `/cases/{caseId}` - Status changes, extraction updates
-- `/generations` (where caseId == X) - Generation progress
 
 **Why onSnapshot:**
 
@@ -272,10 +223,15 @@ Client: window.open(downloadUrl)
 ```
 Case: draft → open → extracting → extracted
 Extraction: pending → extracting → extracted
-Generation: pending → generating → completed
 ```
 
 Each status change triggers UI update via onSnapshot.
+
+**Document Downloads:**
+
+- No real-time tracking needed
+- Synchronous HTTP request with loading state
+- Browser handles download automatically
 
 ---
 
@@ -292,10 +248,11 @@ Each status change triggers UI update via onSnapshot.
 - Case status remains "extracting" (not auto-failed)
 - User can re-upload to retry
 
-**Generation fails:**
+**Download/Generation fails:**
 
-- Worker writes error to generation.errorMessage
-- Status: "failed"
-- User can click generate again (creates new generation doc)
+- FastAPI returns HTTP error with detail message
+- Client shows error toast to user
+- Generation audit record created with status: "failed"
+- User can click download again to retry
 
-**Why:** Async errors don't block user. Each generation is independent (retry doesn't overwrite failed attempt).
+**Why:** Synchronous errors provide immediate feedback. Failed audit records preserved for debugging.

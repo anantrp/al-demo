@@ -133,10 +133,19 @@ def get_signed_upload_url(
     return url
 
 
-def upload_file(storage_path: str, file_content: bytes, content_type: str) -> str:
+def upload_file(
+    storage_path: str,
+    file_content: bytes,
+    content_type: str,
+    download_filename: str | None = None,
+) -> str:
     client = _get_gcs_client()
     bucket = client.bucket(settings.FIREBASE_STORAGE_BUCKET)
     blob = bucket.blob(storage_path)
+
+    if download_filename:
+        blob.content_disposition = f'attachment; filename="{download_filename}"'
+
     blob.upload_from_string(file_content, content_type=content_type)
     return storage_path
 

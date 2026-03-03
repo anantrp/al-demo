@@ -11,8 +11,6 @@ cases/
   {caseId}/
     attachments/
       {docId}.{ext}
-    outputs/
-      {generationId}.pdf
 ```
 
 **Example:**
@@ -28,10 +26,9 @@ cases/
     attachments/
       doc_xyz789abc.jpg
       doc_def456ghi.jpg
-    outputs/
-      gen_mno123pqr.pdf
-      gen_stu456vwx.pdf
 ```
+
+**Note:** Generated documents (outputs) are not stored in Firebase Storage. They are generated on-the-fly and streamed directly to users on download.
 
 ## ID Mapping
 
@@ -39,28 +36,26 @@ All IDs correspond to Firestore document IDs for easy debugging and guaranteed u
 
 - `{templateId}` → `caseTypes/{caseTypeId}/templates/{templateId}`
 - `{docId}` → `cases/{caseId}/sourceDocuments/{docId}`
-- `{generationId}` → `generations/{generationId}`
 
 Storage paths are stored in Firestore documents. No code constructs paths manually.
 
 **Why include IDs in file names:**
 
-- **Debugging:** See `gen_abc123.pdf` in Storage Console → instantly know which Firestore document
+- **Debugging:** See `gen_abc123.docx` in Storage Console → instantly know which Firestore document
 - **Uniqueness:** Firestore IDs are guaranteed unique, prevents collisions
 - **Traceability:** Direct mapping between Storage files and database records without lookups
 - **No downside:** IDs are generated anyway, using them costs nothing
 
 ## Access Patterns
 
-**All operations use Admin SDK or signed URLs - no public access:**
+**All operations use Admin SDK - no public access:**
 
 | Operation              | Method           | Who                                                   |
 | ---------------------- | ---------------- | ----------------------------------------------------- |
-| Upload template        | Admin SDK        | Manual seeding / future admin panel                   |
-| Upload source document | Admin SDK        | Next.js Server Action                                 |
-| Upload generated PDF   | Admin SDK        | FastAPI worker                                        |
-| Download attachment    | Client SDK       | Authenticated user who owns the case                  |
-| Download other files   | Signed URL       | Next.js Server Action generates URL, client downloads |
+| Upload template          | Admin SDK  | Manual seeding / future admin panel         |
+| Upload source document   | Admin SDK  | Next.js Server Action                        |
+| Download attachment      | Client SDK | Authenticated user who owns the case         |
+| Generate document        | FastAPI    | Streamed directly to user (not stored)       |
 
 ## Storage Security Rules
 
@@ -82,24 +77,42 @@ service firebase.storage {
 **Access rules:**
 
 - Attachments (`cases/{caseId}/attachments/`): readable by the authenticated user who owns the case, verified via Firestore lookup
-- All other paths (templates, outputs): deny all — uploads use Admin SDK, downloads use signed URLs
+- All other paths (templates): deny all — uploads use Admin SDK
 - No writes via client SDK anywhere
 
 ## Download Flow
 
+**Attachments (Client SDK):**
+
 ```
 User requests file
   ↓
-Next.js Server Action
+Client SDK: getDownloadURL(storageRef)
   ↓
-Verify user owns case (Firestore read)
+Storage Rules: Verify case ownership via Firestore
   ↓
-Admin SDK generates signed URL (5 min expiry)
+Return download URL
   ↓
-Return URL to client
-  ↓
-Client downloads directly from Storage
+Browser downloads directly
 ```
+
+**Generated Documents (FastAPI):**
+
+```
+User clicks download
+  ↓
+Client: POST /documents/{caseId}/{templateId}/download
+  ↓
+FastAPI: Verify auth, generate document on-the-fly
+  ↓
+Stream .docx file directly to browser
+  ↓
+Browser downloads file
+```
+
+**Benefits:**
+- Attachments: No Server Action required, Storage rules provide security
+- Generated documents: Always fresh with latest data, no Storage costs
 
 ## File Metadata Storage
 
@@ -124,12 +137,13 @@ Source Documents:
 }
 ```
 
-Generations:
+Generations (audit records only, files not stored):
 
 ```json
 {
-  "outputPath": "cases/case_abc123xyz/outputs/gen_mno123pqr.pdf",
-  "outputFileName": "Social_Security_Report.pdf"
+  "outputFileName": "Social_Security_Report.docx",
+  "status": "completed",
+  "durationMs": 8750
 }
 ```
 
@@ -138,6 +152,7 @@ Generations:
 **Not implemented in MVP, future considerations:**
 
 - Delete old source documents when `isLatest` becomes false
-- Delete generation PDFs when case deleted
 - Template versioning cleanup strategy
 - Storage cost monitoring and lifecycle policies
+
+**Note:** Generated documents are not stored, so no cleanup is needed for outputs.

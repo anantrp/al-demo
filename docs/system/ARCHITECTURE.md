@@ -7,8 +7,6 @@ graph TB
     subgraph client[Next.js - Vercel]
         UI[React Components]
         ClientSDK[Firebase Client SDK]
-        ServerActions[Server Actions]
-        AdminSDK[Firebase Admin SDK]
     end
 
     subgraph firebase[Firebase]
@@ -18,49 +16,38 @@ graph TB
         Rules[Security Rules]
     end
 
-    subgraph workers[FastAPI - Cloud Run]
+    subgraph fastapi[FastAPI - Cloud Run]
         EnqueueExtract[/enqueue/extraction]
-        EnqueueGenerate[/enqueue/generation]
-        ExtractWorker[/worker/extraction]
-        GenerateWorker[/worker/generation]
-        WorkerAdmin[Admin SDK]
-    end
-
-    subgraph infrastructure[Cloud Infrastructure]
-        CloudTasks[Cloud Tasks]
+        DownloadDoc[/documents/.../download]
+        ExtractWorker[Background Task]
+        FastAPIAdmin[Admin SDK]
     end
 
     UI -->|Sign in| Auth
     UI -->|Real-time listeners| ClientSDK
     ClientSDK -->|Read cases/status| Firestore
 
-    UI -->|Create case, upload| ServerActions
-    ServerActions -->|Validate, rate limit| AdminSDK
-    AdminSDK -->|Write case| Firestore
-    AdminSDK -->|Upload file| Storage
+    UI -->|Get ID token| Auth
+    UI -->|POST /enqueue/extraction| EnqueueExtract
+    UI -->|POST /documents/.../download| DownloadDoc
 
-    ServerActions -->|POST /enqueue/extraction| EnqueueExtract
-    ServerActions -->|POST /enqueue/generation| EnqueueGenerate
+    EnqueueExtract -->|Create extraction doc| FastAPIAdmin
+    EnqueueExtract -->|Background task| ExtractWorker
 
-    EnqueueExtract -->|Create doc, enqueue| CloudTasks
-    EnqueueGenerate -->|Create doc, enqueue| CloudTasks
+    ExtractWorker -->|Update status| FastAPIAdmin
+    FastAPIAdmin -->|Bypass rules| Firestore
+    FastAPIAdmin -->|Read templates| Storage
 
-    CloudTasks -->|API Key auth| ExtractWorker
-    CloudTasks -->|API Key auth| GenerateWorker
-
-    ExtractWorker -->|Update status| WorkerAdmin
-    GenerateWorker -->|Update status| WorkerAdmin
-
-    WorkerAdmin -->|Bypass rules| Firestore
-    WorkerAdmin -->|Upload PDFs| Storage
+    DownloadDoc -->|Verify auth| Auth
+    DownloadDoc -->|Read data, template| FastAPIAdmin
+    DownloadDoc -->|Stream .docx| UI
+    DownloadDoc -->|Create audit record| FastAPIAdmin
 
     Firestore -.->|Real-time events| ClientSDK
 
-    style ServerActions fill:#bbf
     style EnqueueExtract fill:#fbb
-    style EnqueueGenerate fill:#fbb
+    style DownloadDoc fill:#bfb
     style ExtractWorker fill:#f99
-    style GenerateWorker fill:#f99
 ```
 
 ## Component Responsibilities
@@ -69,51 +56,44 @@ graph TB
 
 **Client Components:**
 
-- Firebase Auth (sign-in, sign-out, session management)
-- Real-time listeners (`onSnapshot`) for case status and generation progress
+- Firebase Auth (sign-in, sign-out, session management, ID token management)
+- Real-time listeners (`onSnapshot`) for case status and extraction progress
 - UI rendering (shadcn/ui components)
-- Direct file uploads to Storage via signed URLs
-
-**Server Actions (Firebase Admin SDK):**
-
-- Case creation with validation and rate limiting
-- Generate signed upload URLs for Storage
-- Finalize uploads (create sourceDocument, trigger extraction)
-- Trigger document generation (user-initiated)
-- Generate signed download URLs
-- Audit logging
+- Direct API calls to FastAPI with Firebase ID tokens
 
 ### Firebase
 
 **Authentication:** Google OAuth  
-**Firestore:** Case metadata, extraction results, generation status, config collections  
-**Storage:** Source documents, generated PDFs, templates  
+**Firestore:** Case metadata, extraction results, generation audit logs, config collections  
+**Storage:** Source documents (user-uploaded), templates (admin-uploaded)  
 **Security Rules:** Read-only for authenticated users (filtered by userId), all writes blocked
 
-### FastAPI Workers (Cloud Run)
+### FastAPI (Cloud Run)
 
-**Enqueue Endpoints:**
+**API Endpoints:**
 
-- `POST /enqueue/extraction` - Create extraction doc, enqueue Cloud Task, return extractionId
-- `POST /enqueue/generation` - Create generation doc, enqueue Cloud Task, return generationId
-- Called by Next.js Server Actions
-- Return immediately (non-blocking)
+- `POST /enqueue/extraction` - Verify auth, create extraction doc, trigger background task, return extractionId
+  - Called directly by client with Firebase ID token
+  - Returns immediately (non-blocking)
+  - Extraction runs in FastAPI BackgroundTasks
 
-**Worker Endpoints:**
+- `POST /documents/{caseId}/{templateId}/download` - Synchronous document generation
+  - Verify Firebase ID token and case ownership
+  - Aggregate latest extraction fields and user fields
+  - Download template from Storage
+  - Render .docx using python-docxtpl
+  - Stream document directly to client (1-3 seconds)
+  - Create audit record in `generations` collection
+  - No storage of generated documents
 
-- `POST /worker/extraction` - Download file, GPT-4 Vision extraction, validation, Firestore update
-- `POST /worker/generation` - Template rendering, .docx → PDF conversion, Storage upload
-- Called by Cloud Tasks (API key auth)
-- Process async, update Firestore
+**Background Tasks:**
+
+- Extraction processing (GPT-4 Vision API, validation, Firestore updates)
+- Runs in-process using FastAPI BackgroundTasks (not Cloud Tasks)
 
 **Admin SDK:** All Firestore/Storage writes bypass Security Rules
 
-### Cloud Tasks
-
-- Queue extraction jobs (automatic after upload)
-- Queue generation jobs (user-initiated)
-- API key authentication to FastAPI workers
-- Automatic retries, rate limiting, durability
+**Note:** Cloud Tasks planned for future production deployment to enable retries, rate limiting, and durability at scale.
 
 ---
 
@@ -127,12 +107,12 @@ graph TB
 - Admin SDK: All writes (Server Actions + FastAPI workers)
 - Rationale: Validation, rate limiting, audit trails happen server-side. Client cannot corrupt state.
 
-**FastAPI for compute only**
+**FastAPI for compute and API endpoints**
 
-- No business logic in FastAPI routes
-- Workers process async tasks, update Firestore
-- Enqueue endpoints create tracking docs, return IDs immediately
-- Rationale: Separates heavy processing from request/response cycle
+- Extraction: Async processing via background tasks, real-time status updates
+- Generation: Synchronous streaming for fast user experience (1-3 seconds)
+- All authentication verified via Firebase ID tokens
+- Rationale: Balances user experience (fast downloads) with system reliability (async extraction)
 
 ### Data Architecture
 
@@ -169,19 +149,28 @@ graph TB
 - IDs in filenames for debugging, not for logic
 - Rationale: Reduces coupling, easier to refactor paths
 
-### Async Processing
+### Processing Patterns
 
-**Cloud Tasks for durability**
+**Async extraction via background tasks**
 
-- Extraction: automatic (triggered after upload finalization)
-- Generation: user-initiated (manual trigger per template)
-- Rationale: Retries, rate limiting, survives instance restarts. Production-grade without over-engineering user-facing actions.
+- Extraction runs in FastAPI BackgroundTasks after upload
+- Real-time status updates via Firestore `onSnapshot`
+- Rationale: Long-running GPT-4 Vision calls (5-15 seconds) shouldn't block upload response
+
+**Synchronous generation**
+
+- Documents generated on-demand during download request (1-3 seconds)
+- Streamed directly to user, not stored
+- Audit record created in `generations` collection
+- Rationale: Fast enough for synchronous request, always uses latest data, no storage costs
 
 **Real-time updates via Firestore**
 
-- Workers update Firestore, `onSnapshot` updates UI
+- Background tasks update Firestore, `onSnapshot` updates UI
 - No polling, no WebSockets
 - Rationale: Firebase native pattern, offline support, automatic reconnection
+
+**Future:** Cloud Tasks for production-scale extraction with retries, rate limiting, and durability
 
 ### Validation Strategy
 
@@ -205,11 +194,12 @@ graph TB
 - `version` increments, `extractionConfig` tracks parameters
 - Rationale: Development needs re-extraction, production needs prompt evolution
 
-**Generations: snapshot fields**
+**Generations: audit-only records**
 
-- Store `extractedFields` used for generation
-- Re-extraction doesn't break existing PDFs
-- Rationale: Immutable outputs, audit trail for compliance
+- Track generation events for analytics and debugging
+- No document storage - each download generates fresh with latest data
+- Records include: templateId, status, durationMs, timestamp
+- Rationale: Always current data, no stale documents, simpler architecture
 
 **Templates: overwrite + version field**
 
@@ -247,7 +237,7 @@ graph TB
 | Database   | Firestore                                  | Firebase     |
 | Storage    | Firebase Storage                           | Firebase     |
 | Auth       | Firebase Authentication                    | Firebase     |
-| Compute    | Cloud Tasks                                | GCP          |
+| Compute    | FastAPI BackgroundTasks                    | Cloud Run    |
 | AI         | OpenAI GPT-4 Vision                        | —            |
 | Deployment | Git-connected                              | Vercel + GCP |
 
@@ -275,70 +265,60 @@ graph TB
    ↓
 6. Client: PUT file to Storage
    ↓
-7. Server Action: finalizeUpload()
-   - Create sourceDocument (isLatest: true)
-   - Update case (status: open)
-   - POST /enqueue/extraction
+7. Client: POST /enqueue/extraction (with ID token)
    ↓
-8. FastAPI: Create extraction doc, enqueue Cloud Task
+8. FastAPI: Create extraction doc, trigger background task
    ↓
-9. Client onSnapshot: Status → "extracting"
+9. Client onSnapshot: Status → "processing"
 ```
 
 ### Extraction Processing
 
 ```
-1. Cloud Tasks → POST /worker/extraction (API key auth)
+1. FastAPI Background Task: run_extraction(extractionId)
    ↓
-2. Worker:
-   - Update extraction (status: extracting)
+2. Background Task:
+   - Update extraction (status: processing)
    - Download file from Storage
    - GPT-4 Vision extraction
    - JSON Schema + custom validation
-   - Update extraction (fields, status: extracted)
-   - Update sourceDocument (latestExtractionId)
-   - Update case (status: extracted)
+   - Update extraction (fields, status: processed/failed/flagged)
+   - Update sourceDocument (latestExtractionId, status)
    ↓
 3. Client onSnapshot: Extraction complete, display fields
 ```
 
-### Document Generation
+### Document Generation & Download
 
 ```
-1. User clicks "Generate" on template
+1. User clicks "Download" on template
    ↓
-2. Server Action: generateDocument()
-   - Verify extraction complete
-   - POST /enqueue/generation
+2. Client: Get Firebase ID token
    ↓
-3. FastAPI: Create generation doc (snapshot fields), enqueue Cloud Task
+3. Client: POST /documents/{caseId}/{templateId}/download
+   - Authorization: Bearer {idToken}
    ↓
-4. Client onSnapshot: Generation status → "generating"
+4. FastAPI:
+   - Verify ID token and case ownership
+   - Verify latest extraction is processed
+   - Aggregate fields from latest extractions
+   - Get userFields from case document
+   - Download template .docx from Storage
+   - Render document using python-docxtpl
+   - Create generation audit record (Firestore)
+   - Stream .docx directly to client
    ↓
-5. Cloud Tasks → POST /worker/generation
-   ↓
-6. Worker:
-   - Fetch template .docx
-   - Render with snapshotted fields
-   - Convert .docx → PDF
-   - Upload to Storage
-   - Update generation (status: completed, outputPath)
-   ↓
-7. Client onSnapshot: Download link appears
+5. Browser: Download file automatically
+   - File named per template's documentDownloadName
+   - Completes in 1-3 seconds
 ```
 
-### Download Flow
-
-```
-1. User clicks download
-   ↓
-2. Server Action: getDownloadUrl()
-   - Verify user owns generation
-   - Generate signed URL (5 min expiry)
-   - Return URL
-   ↓
-3. Client: Direct download from Storage
-```
+**Benefits:**
+- Always uses latest case data (no stale documents)
+- Fast for small .docx files (1-3 seconds)
+- No Storage costs for outputs
+- Simpler architecture (no async workers, no status tracking)
+- Audit trail preserved in generations collection
 
 ---
 
@@ -352,15 +332,15 @@ graph TB
 
 **Storage Rules:**
 
-- All access denied
-- Uploads: Admin SDK via Server Actions
-- Downloads: Signed URLs via Server Actions
+- User attachments: Readable by authenticated case owner (verified via Firestore lookup)
+- Templates: No public access (Admin SDK only)
+- Generated documents: Not stored (streamed directly to users)
 
-**Worker Authentication:**
+**API Authentication:**
 
-- API keys stored in Secret Manager
-- Cloud Tasks attaches key in `X-API-Key` header
-- FastAPI verifies before processing
+- All FastAPI endpoints verify Firebase ID tokens
+- Token contains userId used for authorization checks
+- No API keys or worker authentication needed in current implementation
 
 **Admin SDK Operations:**
 
@@ -370,11 +350,20 @@ graph TB
 
 ---
 
-## Non-Goals (MVP)
+## Current Implementation vs. Future Plans
 
-- Admin panel (manual Firestore Console)
-- Retry endpoints (re-upload for recovery)
-- Multi-document cases (schema ready, enforced to 1)
+**Current (MVP):**
+- Extraction: FastAPI BackgroundTasks (in-process)
+- Generation: Synchronous streaming (1-3 seconds)
+- Authentication: Firebase ID tokens on all API calls
+- Document storage: Templates only (outputs streamed, not stored)
+
+**Planned Future Enhancements:**
+- Cloud Tasks for extraction (retries, rate limiting, durability)
+- API key authentication for worker endpoints
+- Cloud Functions for Firestore triggers
+- Admin panel (currently manual via Firestore Console)
+- Multi-document cases (schema ready, enforced to 1 for now)
 - Organization support (schema ready, null for now)
 
 ## Future-Proofing

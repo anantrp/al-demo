@@ -36,15 +36,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     try:
         decoded_token = verify_id_token(credentials.credentials)
         return decoded_token
-    except ValueError as e:
-        print(f"[get_current_user] Token validation failed: {e}")
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Your session has expired. Please sign in again",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception as e:
-        print(f"[get_current_user] Unexpected auth error: {e}")
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authentication error. Please try again",

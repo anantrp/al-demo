@@ -17,7 +17,6 @@ export async function enqueueExtraction(
   const timeoutId = setTimeout(() => controller.abort(), 15000);
   let res: Response;
   try {
-    console.log("[enqueueExtraction] Starting request to:", url);
     res = await fetch(url, {
       method: "POST",
       headers: {
@@ -27,21 +26,12 @@ export async function enqueueExtraction(
       body: JSON.stringify({ caseId, sourceDocumentId }),
       signal: controller.signal,
     });
-    console.log("[enqueueExtraction] Response received:", res.status, res.statusText);
   } catch (error) {
     clearTimeout(timeoutId);
-    console.error("[enqueueExtraction] Fetch error details:", {
-      error,
-      message: error instanceof Error ? error.message : "Unknown error",
-      name: error instanceof Error ? error.name : "Unknown",
-      cause: error instanceof Error ? error.cause : undefined,
-      url,
-    });
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Upload timed out. Please try again.");
     }
-    const errorMessage = error instanceof Error ? error.message : UPLOAD_ERROR_MESSAGE;
-    throw new Error(`${UPLOAD_ERROR_MESSAGE} (${errorMessage})`);
+    throw new Error(UPLOAD_ERROR_MESSAGE);
   } finally {
     clearTimeout(timeoutId);
   }

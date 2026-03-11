@@ -1,8 +1,51 @@
-# Developer Setup
+# About the Project
+
+This is a demo project for a document workflow application. It attempts to solve the problem of automating several hours of administrative work for families upon the death of a loved one.
+
+- Upload a death certificate image
+- Automatically extract the relevant information
+- Fill out a single form with informant's information
+- Ready to download a formatted letter to send to the relevant institutions
+
+## Project Structure
+
+The project is a monorepo with the following components:
+
+- Enqueue APIs with FastAPI (Google Cloud Run)
+- Extraction and Document Generation workers with FastAPI (Google Cloud Run)
+- Extraction Prompt Management and Tracing via LangSmith
+- Web app with Next.js (Vercel)
+- Authentication with Firebase Authentication
+- Database with Firestore
+- Storage with Firebase Storage (Google Cloud Storage)
+- Hosting with Vercel
+
+### Why Monorepo?
+
+This project uses a monorepo structure because we have tightly coupled services (API and web app) with coordinated deployment cycles and a small team working on features end-to-end. This structure reduces coordination overhead and enables atomic cross-service changes.
+
+For a detailed exploration of monorepo vs polyrepo decision-making, see [Monorepo vs Polyrepo: Team Structure Over Technology](https://anantparmar.com/blog/monorepo-vs-polyrepo-team-structure-over-technology).
+
+```text
+project/
+├── api/                      # Python FastAPI (Ruff)
+├── apps/web/                 # Next.js (ESLint + Prettier)
+├── docs/                     # Documentation
+└── al-demo.code-workspace    # Pre-configured IDE settings
+```
+
+### Documentation
+
+- **[Architecture](docs/system/ARCHITECTURE.md)**: System architecture, technology stack, and design patterns
+- **[Authentication](docs/system/AUTH.md)**: Authentication flows, user roles, and security implementation
+
+See `docs/system/` for complete system documentation.
+
+---
+
+## Developer Setup
 
 Complete setup guide for the project monorepo. Format-on-save and linting are pre-configured.
-
-## Quick Start
 
 1. **Open workspace file** (required for proper IDE integration):
 
@@ -32,16 +75,6 @@ Complete setup guide for the project monorepo. Format-on-save and linting are pr
 
 That's it! Format-on-save is now active for all files.
 
-## Project Structure
-
-```
-project/
-├── api/                      # Python FastAPI (Ruff)
-├── apps/web/                 # Next.js (ESLint + Prettier)
-├── docs/                     # Documentation
-└── al-demo.code-workspace    # Pre-configured IDE settings
-```
-
 ## What's Already Configured
 
 **Python** (`api/pyproject.toml`):
@@ -64,7 +97,7 @@ project/
 
 Each project keeps its own `.env` file in its directory:
 
-```
+```text
 api/.env                  # Python API environment variables
 apps/web/.env.local       # Next.js app environment variables (gitignored)
 ```

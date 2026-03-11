@@ -7,7 +7,7 @@ This is a demo project for a document workflow application. It attempts to solve
 - Upload a death certificate image
 - Automatically extract the relevant information
 - Fill out a single form with informant's information
-- Ready to download a formatted letter to send to the relevant institutions
+- Ready to download formatted letters (10+ documents) to send to the relevant institutions
 
 For detailed scope and nomenclature, see [Project.md](Project.md).
 

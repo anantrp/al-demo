@@ -2,10 +2,14 @@
 
 This is a demo project for a document workflow application. It attempts to solve the problem of automating several hours of administrative work for families upon the death of a loved one.
 
+## Core Features
+
 - Upload a death certificate image
 - Automatically extract the relevant information
 - Fill out a single form with informant's information
 - Ready to download a formatted letter to send to the relevant institutions
+
+For detailed scope and nomenclature, see [Project.md](Project.md).
 
 ## Project Structure
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   sendSignInLinkToEmail,
   signOutFromFirebase,
 } from "@/lib/firebase";
-import { createSession } from "@/actions/auth";
+import { createSession, clearExpiredSession } from "@/actions/auth";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 const EMAIL_FOR_SIGN_IN_KEY = "emailForSignIn";
@@ -34,6 +34,10 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"password" | "magic">("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+  useEffect(() => {
+    clearExpiredSession();
+  }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();

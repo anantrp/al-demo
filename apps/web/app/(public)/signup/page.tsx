@@ -1,9 +1,17 @@
 import { GalleryVerticalEnd } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { SignupForm } from "@/components/signup-form";
+import { verifySession } from "@/actions/auth";
 
-export default function SignupPage() {
+export default async function SignupPage() {
+  const user = await verifySession();
+
+  if (user) {
+    redirect("/");
+  }
+
   return (
     <div className="bg-muted flex min-h-full flex-col items-center justify-center overflow-auto gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">

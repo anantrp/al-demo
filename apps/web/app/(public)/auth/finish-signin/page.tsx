@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { GalleryVerticalEnd } from "lucide-react";
 import Link from "next/link";
 import { auth, isSignInWithEmailLink, signInWithEmailLink } from "@/lib/firebase";
-import { createSession } from "@/actions/auth";
+import { createSession, clearExpiredSession, verifySession } from "@/actions/auth";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,20 @@ function FinishSignInContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    const checkExistingSession = async () => {
+      const user = await verifySession();
+      if (user) {
+        router.push("/");
+        return true;
+      }
+      return false;
+    };
+
     const completeSignIn = async () => {
+      const hasSession = await checkExistingSession();
+      if (hasSession) return;
+
+      await clearExpiredSession();
       if (!isSignInWithEmailLink(auth, window.location.href)) {
         setError("Invalid or missing sign-in link.");
         setInvalidLink(true);

@@ -57,7 +57,6 @@ export async function verifySession() {
     };
   } catch (error: unknown) {
     console.error("Error verifying session:", (error as Error).message);
-    cookieStore.delete("session");
     return null;
   }
 }
@@ -76,5 +75,21 @@ export async function signOut() {
   }
 
   cookieStore.delete("session");
+  return { success: true };
+}
+
+export async function clearExpiredSession() {
+  const cookieStore = await cookies();
+  const session = cookieStore.get("session")?.value;
+
+  if (session) {
+    try {
+      await adminAuth.verifySessionCookie(session, true);
+    } catch (error: unknown) {
+      console.error("Error verifying session:", (error as Error).message);
+      cookieStore.delete("session");
+    }
+  }
+
   return { success: true };
 }

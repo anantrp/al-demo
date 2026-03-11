@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   sendEmailVerification,
   signOutFromFirebase,
 } from "@/lib/firebase";
-import { createSession } from "@/actions/auth";
+import { createSession, clearExpiredSession } from "@/actions/auth";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
@@ -32,6 +32,10 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+
+  useEffect(() => {
+    clearExpiredSession();
+  }, []);
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();

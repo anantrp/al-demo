@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { auth } from "@/lib/firebase";
 import { verifyPasswordResetCode, confirmPasswordReset } from "firebase/auth";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import { clearExpiredSession } from "@/actions/auth";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -24,6 +25,10 @@ function ResetPasswordContent() {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    clearExpiredSession();
+  }, []);
 
   // Magic link (signIn) emails land here when Firebase custom action URL is /reset-password.
   // Redirect to /auth/finish-signin so the page can complete signInWithEmailLink.

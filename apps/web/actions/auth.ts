@@ -56,7 +56,8 @@ export async function verifySession() {
       picture: decodedClaims.picture || null,
     };
   } catch (error: unknown) {
-    console.error("Error revoking tokens:", (error as Error).message);
+    console.error("Error verifying session:", (error as Error).message);
+    cookieStore.delete("session");
     return null;
   }
 }

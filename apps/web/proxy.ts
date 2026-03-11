@@ -14,18 +14,10 @@ export async function proxy(request: NextRequest) {
   ];
 
   const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith("/auth/");
-  const isAuthRoute =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/auth/finish-signin");
   const isProtectedRoute = !isPublicRoute;
 
   if (isProtectedRoute && !session) {
     return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

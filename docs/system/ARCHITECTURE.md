@@ -17,8 +17,8 @@ graph TB
     end
 
     subgraph fastapi[FastAPI - Cloud Run]
-        EnqueueExtract[/enqueue/extraction]
-        DownloadDoc[/documents/.../download]
+        EnqueueExtract["POST /enqueue/extraction"]
+        DownloadDoc["POST /documents/.../download"]
         ExtractWorker[Background Task]
         FastAPIAdmin[Admin SDK]
     end
